@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Sitios{% endblock %}
+
+{% block content %}
+    <h1>Sitios</h1>
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <a href="{% url 'site_create' %}" role="button">Nuevo sitio</a>
+    {% endif %}
+    <ul>
+        {% for site in sites %}
+            <li><a href="{% url 'site_detail' site.pk %}">{{ site.name }}</a></li>
+        {% empty %}
+            <li>No hay sitios registrados.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

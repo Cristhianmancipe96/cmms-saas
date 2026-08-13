@@ -4,7 +4,7 @@ Tick a brief only when its Definition of Done is fully met (tests green, pushed)
 Execute in order — each brief depends on all previous ones unless noted.
 
 - [x] 00 — Bootstrap: Django skeleton, Postgres, CI, first push
-- [ ] 01 — Tenancy, accounts and roles
+- [x] 01 — Tenancy, accounts and roles
 - [ ] 02 — Assets (equipment records)
 - [ ] 03 — Checklist templates with versioning
 - [ ] 04 — Maintenance plans and idempotent scheduler

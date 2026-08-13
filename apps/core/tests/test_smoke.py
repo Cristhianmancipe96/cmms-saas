@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.test import Client, TestCase
+from django.urls import reverse
 
+from apps.accounts.tests.factories import UserFactory
 from apps.core.models import BootstrapPing
 from apps.core.tests.factories import BootstrapPingFactory
 
@@ -25,8 +27,21 @@ class BootstrapPingModelTests(TestCase):
 
 
 class HomeViewTests(TestCase):
-    def test_home_returns_200(self):
+    """Brief 01's "deny by default" rule (CLAUDE.md) applies to `/` too: it's
+    the documented post-login landing page, not a public page.
+    """
+
+    def test_anonymous_is_redirected_to_login(self):
         response = Client().get("/")
+
+        assert response.status_code == 302
+        assert response.url.startswith(reverse("login"))
+
+    def test_authenticated_user_gets_200(self):
+        client = Client()
+        client.force_login(UserFactory())
+
+        response = client.get("/")
 
         assert response.status_code == 200
         assert "hola" in response.content.decode()

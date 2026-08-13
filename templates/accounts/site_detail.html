@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.name }}{% endblock %}
+
+{% block content %}
+    <h1>{{ site.name }}</h1>
+    <p>{{ site.address|default:"Sin dirección registrada." }}</p>
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <a href="{% url 'site_update' site.pk %}" role="button">Editar</a>
+    {% endif %}
+    <p><a href="{% url 'site_list' %}">&larr; Volver a sitios</a></p>
+{% endblock %}

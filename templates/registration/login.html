@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar sesión{% endblock %}
+
+{% block content %}
+    <h1>Iniciar sesión</h1>
+    {% if form.errors %}
+        <article role="alert" class="error">Usuario o contraseña incorrectos.</article>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
+        {{ form.username }}
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        {{ form.password }}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit">Entrar</button>
+    </form>
+{% endblock %}

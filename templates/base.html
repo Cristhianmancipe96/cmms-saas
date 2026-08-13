@@ -15,7 +15,21 @@
                 <li><strong>Mantenimiento</strong></li>
             </ul>
             <ul>
-                {# Nav placeholder — links land as roles/views are built in later briefs. #}
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'site_list' %}">Sitios</a></li>
+                    {% if user.role == "admin" %}
+                        <li><a href="{% url 'user_list' %}">Usuarios</a></li>
+                    {% endif %}
+                    <li><a href="{% url 'password_change' %}">Contraseña</a></li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="secondary">Salir</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li><a href="{% url 'login' %}">Iniciar sesión</a></li>
+                {% endif %}
             </ul>
         </nav>
     </header>
