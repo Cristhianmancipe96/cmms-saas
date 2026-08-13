@@ -4,17 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Mantenimiento{% endblock %}</title>
+    <meta name="theme-color" content="#1E2A38">
+    <title>{% block title %}Vectron Management{% endblock %} · Vectron Management</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/vectron-mark.svg' %}">
     <link rel="stylesheet" href="{% static 'vendor/pico/pico.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/vectron.css' %}">
     <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 </head>
 <body>
-    <header class="container">
-        <nav>
-            <ul>
-                <li><strong>Mantenimiento</strong></li>
-            </ul>
-            <ul>
+    <header class="vt-topbar">
+        <nav class="container">
+            <a class="vt-brand" href="{% url 'home' %}">
+                <img src="{% static 'img/vectron-mark.svg' %}" alt="" width="28" height="28">
+                <span class="vt-brand-name">
+                    <b>VECTRON</b>
+                    <small>Management</small>
+                </span>
+            </a>
+            <ul class="vt-nav">
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'site_list' %}">Sitios</a></li>
                     {% if user.role == "admin" %}
@@ -24,7 +31,7 @@
                     <li>
                         <form method="post" action="{% url 'logout' %}">
                             {% csrf_token %}
-                            <button type="submit" class="secondary">Salir</button>
+                            <button type="submit" class="vt-logout">Salir</button>
                         </form>
                     </li>
                 {% else %}
@@ -36,7 +43,7 @@
     <main class="container">
         {% if messages %}
             {% for message in messages %}
-                <article role="alert" class="{% if message.tags %}{{ message.tags }}{% endif %}">
+                <article role="alert" class="vt-alert vt-alert--{{ message.tags }}">
                     {{ message }}
                 </article>
             {% endfor %}

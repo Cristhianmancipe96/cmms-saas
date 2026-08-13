@@ -33,3 +33,6 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+
+# Agent tooling
+.claude/

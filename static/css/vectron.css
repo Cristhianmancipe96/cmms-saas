@@ -1,0 +1,465 @@
+/* ==========================================================================
+   Vectron Management — brand theme
+   Layered over Pico CSS v2.1.1 (load AFTER pico.min.css).
+   Light by default; dark via [data-theme="dark"] or prefers-color-scheme.
+   Every text/background pair validated WCAG 2.1 AA (see docs/design/DESIGN.md).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Brand tokens (source of truth — components reference these)
+   -------------------------------------------------------------------------- */
+:root {
+  /* Navy — from the Vectron logo background */
+  --vt-navy-950: oklch(0.204 0.018 245);  /* #10181F ink / deepest        */
+  --vt-navy-900: oklch(0.223 0.024 251);  /* #131C26 dark bg              */
+  --vt-navy-800: oklch(0.281 0.031 253);  /* #1E2A38 BRAND NAVY (logo bg) */
+  --vt-navy-700: oklch(0.347 0.040 253);  /* #2B3B4E raised surface dark  */
+  --vt-navy-600: oklch(0.423 0.042 249);  /* #3C5064 borders dark         */
+  --vt-slate-500: oklch(0.513 0.036 248); /* #57697B muted text light     */
+  --vt-slate-400: oklch(0.665 0.033 247); /* #8496A7 disabled / icons     */
+  --vt-slate-300: oklch(0.844 0.018 248); /* #C3CDD7 strong borders light */
+  --vt-slate-200: oklch(0.918 0.011 244); /* #DEE5EB borders light        */
+  --vt-slate-100: oklch(0.953 0.007 248); /* #ECF0F4 subtle fill light    */
+  --vt-bg-light:  oklch(0.978 0.003 248); /* #F6F8FA app bg light         */
+  --vt-ink-on-dark:   oklch(0.944 0.009 248); /* #E8EDF2 text on navy     */
+  --vt-muted-on-dark: oklch(0.756 0.029 248); /* #A2B2C2 muted on navy    */
+
+  /* Orange — from the Vectron logo "V" */
+  --vt-orange-300: oklch(0.789 0.130 64); /* #F4A75B links/accents on dark */
+  --vt-orange-500: oklch(0.724 0.168 57); /* #F28619 BRAND ORANGE (CTA)    */
+  --vt-orange-600: oklch(0.650 0.162 52); /* #D96D0F hover/pressed         */
+  --vt-orange-700: oklch(0.545 0.137 52); /* #AC5407 links on light        */
+  --vt-orange-800: oklch(0.520 0.130 53); /* #9E4B05 text on orange tint   */
+  --vt-orange-100: oklch(0.955 0.026 68); /* #FDEFE1 orange tint bg        */
+
+  /* Semantic states */
+  --vt-success-700: #1D6E3F; --vt-success-300: #6FCE96; --vt-success-100: #DDF2E5;
+  --vt-warning-700: #755808; --vt-warning-300: #E5C55A; --vt-warning-100: #FAF0CE;
+  --vt-danger-700:  #AC322C; --vt-danger-300:  #F0968F; --vt-danger-100:  #FBE3E1;
+  --vt-info-700:    #2A628F; --vt-info-300:    #7FB4DC; --vt-info-100:    #E2EEF7;
+
+  /* Shape & motion */
+  --vt-radius: 0.5rem;
+  --vt-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --vt-t-fast: 150ms;
+
+  /* Semantic z-index scale */
+  --vt-z-dropdown: 100;
+  --vt-z-sticky: 200;
+  --vt-z-modal-backdrop: 300;
+  --vt-z-modal: 310;
+  --vt-z-toast: 400;
+  --vt-z-tooltip: 500;
+}
+
+/* --------------------------------------------------------------------------
+   2. Pico overrides — LIGHT (default)
+   -------------------------------------------------------------------------- */
+:root,
+:root:not([data-theme="dark"]),
+[data-theme="light"] {
+  --pico-background-color: var(--vt-bg-light);
+  --pico-color: var(--vt-navy-900);
+  --pico-muted-color: var(--vt-slate-500);
+  --pico-muted-border-color: var(--vt-slate-200);
+  --pico-border-radius: var(--vt-radius);
+
+  /* Links & accents */
+  --pico-primary: var(--vt-orange-700);
+  --pico-primary-hover: var(--vt-orange-600);
+  --pico-primary-underline: color-mix(in srgb, var(--vt-orange-700) 45%, transparent);
+  --pico-primary-focus: color-mix(in srgb, var(--vt-orange-500) 45%, transparent);
+
+  /* Primary buttons: brand orange + dark ink (white-on-orange fails AA) */
+  --pico-primary-background: var(--vt-orange-500);
+  --pico-primary-border: var(--vt-orange-500);
+  --pico-primary-hover-background: var(--vt-orange-600);
+  --pico-primary-hover-border: var(--vt-orange-600);
+  --pico-primary-inverse: var(--vt-navy-950);
+
+  /* Secondary: quiet navy */
+  --pico-secondary: var(--vt-slate-500);
+  --pico-secondary-background: var(--vt-navy-800);
+  --pico-secondary-border: var(--vt-navy-800);
+  --pico-secondary-hover: var(--vt-navy-700);
+  --pico-secondary-hover-background: var(--vt-navy-700);
+  --pico-secondary-inverse: var(--vt-ink-on-dark);
+  --pico-secondary-focus: color-mix(in srgb, var(--vt-navy-600) 40%, transparent);
+
+  /* Headings */
+  --pico-h1-color: var(--vt-navy-950);
+  --pico-h2-color: var(--vt-navy-900);
+  --pico-h3-color: var(--vt-navy-900);
+
+  /* Cards / surfaces */
+  --pico-card-background-color: #FFFFFF;
+  --pico-card-border-color: var(--vt-slate-200);
+  --pico-card-box-shadow: 0 1px 2px oklch(0.223 0.024 251 / 0.06);
+  --pico-card-sectioning-background-color: var(--vt-slate-100);
+
+  /* Forms */
+  --pico-form-element-background-color: #FFFFFF;
+  --pico-form-element-border-color: var(--vt-slate-300);
+  --pico-form-element-active-border-color: var(--vt-orange-500);
+  --pico-form-element-focus-color: color-mix(in srgb, var(--vt-orange-500) 45%, transparent);
+  --pico-form-element-placeholder-color: var(--vt-slate-500);
+
+  --pico-mark-background-color: var(--vt-orange-100);
+  --pico-mark-color: var(--vt-navy-900);
+
+  --vt-ink: var(--vt-navy-900);
+  --vt-muted: var(--vt-slate-500);
+
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   3. Pico overrides — DARK
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pico-background-color: var(--vt-navy-900);
+    --pico-color: var(--vt-ink-on-dark);
+    --pico-muted-color: var(--vt-muted-on-dark);
+    --pico-muted-border-color: var(--vt-navy-700);
+
+    --pico-primary: var(--vt-orange-300);
+    --pico-primary-hover: var(--vt-orange-500);
+    --pico-primary-underline: color-mix(in srgb, var(--vt-orange-300) 45%, transparent);
+    --pico-primary-focus: color-mix(in srgb, var(--vt-orange-500) 50%, transparent);
+
+    --pico-primary-background: var(--vt-orange-500);
+    --pico-primary-border: var(--vt-orange-500);
+    --pico-primary-hover-background: var(--vt-orange-300);
+    --pico-primary-hover-border: var(--vt-orange-300);
+    --pico-primary-inverse: var(--vt-navy-950);
+
+    --pico-secondary: var(--vt-muted-on-dark);
+    --pico-secondary-background: var(--vt-navy-700);
+    --pico-secondary-border: var(--vt-navy-600);
+    --pico-secondary-hover-background: var(--vt-navy-600);
+    --pico-secondary-inverse: var(--vt-ink-on-dark);
+
+    --pico-h1-color: #FFFFFF;
+    --pico-h2-color: var(--vt-ink-on-dark);
+    --pico-h3-color: var(--vt-ink-on-dark);
+
+    --pico-card-background-color: var(--vt-navy-800);
+    --pico-card-border-color: var(--vt-navy-700);
+    --pico-card-box-shadow: 0 1px 2px oklch(0.15 0.02 250 / 0.5);
+    --pico-card-sectioning-background-color: var(--vt-navy-700);
+
+    --pico-form-element-background-color: var(--vt-navy-800);
+    --pico-form-element-border-color: var(--vt-navy-600);
+    --pico-form-element-active-border-color: var(--vt-orange-500);
+    --pico-form-element-focus-color: color-mix(in srgb, var(--vt-orange-500) 50%, transparent);
+    --pico-form-element-placeholder-color: var(--vt-muted-on-dark);
+
+    --pico-mark-background-color: var(--vt-navy-700);
+    --pico-mark-color: var(--vt-orange-300);
+
+    --vt-ink: var(--vt-ink-on-dark);
+    --vt-muted: var(--vt-muted-on-dark);
+
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  --pico-background-color: var(--vt-navy-900);
+  --pico-color: var(--vt-ink-on-dark);
+  --pico-muted-color: var(--vt-muted-on-dark);
+  --pico-muted-border-color: var(--vt-navy-700);
+
+  --pico-primary: var(--vt-orange-300);
+  --pico-primary-hover: var(--vt-orange-500);
+  --pico-primary-underline: color-mix(in srgb, var(--vt-orange-300) 45%, transparent);
+  --pico-primary-focus: color-mix(in srgb, var(--vt-orange-500) 50%, transparent);
+
+  --pico-primary-background: var(--vt-orange-500);
+  --pico-primary-border: var(--vt-orange-500);
+  --pico-primary-hover-background: var(--vt-orange-300);
+  --pico-primary-hover-border: var(--vt-orange-300);
+  --pico-primary-inverse: var(--vt-navy-950);
+
+  --pico-secondary: var(--vt-muted-on-dark);
+  --pico-secondary-background: var(--vt-navy-700);
+  --pico-secondary-border: var(--vt-navy-600);
+  --pico-secondary-hover-background: var(--vt-navy-600);
+  --pico-secondary-inverse: var(--vt-ink-on-dark);
+
+  --pico-h1-color: #FFFFFF;
+  --pico-h2-color: var(--vt-ink-on-dark);
+  --pico-h3-color: var(--vt-ink-on-dark);
+
+  --pico-card-background-color: var(--vt-navy-800);
+  --pico-card-border-color: var(--vt-navy-700);
+  --pico-card-box-shadow: 0 1px 2px oklch(0.15 0.02 250 / 0.5);
+  --pico-card-sectioning-background-color: var(--vt-navy-700);
+
+  --pico-form-element-background-color: var(--vt-navy-800);
+  --pico-form-element-border-color: var(--vt-navy-600);
+  --pico-form-element-active-border-color: var(--vt-orange-500);
+  --pico-form-element-focus-color: color-mix(in srgb, var(--vt-orange-500) 50%, transparent);
+  --pico-form-element-placeholder-color: var(--vt-muted-on-dark);
+
+  --pico-mark-background-color: var(--vt-navy-700);
+  --pico-mark-color: var(--vt-orange-300);
+
+  --vt-ink: var(--vt-ink-on-dark);
+  --vt-muted: var(--vt-muted-on-dark);
+
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   4. Top bar — brand chrome (navy in BOTH themes; the brand is constant)
+   -------------------------------------------------------------------------- */
+.vt-topbar {
+  background: var(--vt-navy-800);
+  color: var(--vt-ink-on-dark);
+  position: sticky;
+  top: 0;
+  z-index: var(--vt-z-sticky);
+  border-bottom: 1px solid var(--vt-navy-700);
+}
+
+.vt-topbar > nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.5rem;
+  padding-block: 0;
+}
+
+/* Brand lockup: mark + VECTRON / MANAGEMENT (mirrors the logo hierarchy) */
+.vt-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  text-decoration: none;
+  color: inherit;
+}
+.vt-brand:is(:hover, :focus-visible) { text-decoration: none; color: inherit; }
+.vt-brand img,
+.vt-brand svg { width: 1.75rem; height: 1.75rem; display: block; }
+.vt-brand-name { display: flex; flex-direction: column; line-height: 1.15; }
+.vt-brand-name b {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--vt-ink-on-dark);
+}
+.vt-brand-name small {
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  color: var(--vt-muted-on-dark);
+  text-transform: uppercase;
+}
+
+/* Nav list */
+.vt-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vt-nav li { margin: 0; padding: 0; list-style: none; display: flex; align-items: stretch; }
+.vt-nav form { margin: 0; }
+
+/* "Salir" as a quiet text button that reads like a nav link */
+.vt-logout {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  width: auto;
+  font-size: 0.9375rem;
+  background: transparent;
+  color: var(--vt-muted-on-dark);
+  border: 1px solid var(--vt-navy-600);
+  border-radius: var(--vt-radius);
+}
+.vt-logout:is(:hover, :focus-visible) {
+  background: var(--vt-navy-700);
+  border-color: var(--vt-navy-600);
+  color: var(--vt-ink-on-dark);
+}
+
+/* Nav links inside the bar */
+.vt-topbar a:not(.vt-brand) {
+  display: flex;
+  align-items: center;
+  border-radius: 0;
+  min-height: 3.5rem;
+  color: var(--vt-muted-on-dark);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  padding: 0 0.25rem;
+  border-bottom: 2px solid transparent;
+  transition: color var(--vt-t-fast) var(--vt-ease-out);
+}
+.vt-topbar a:not(.vt-brand):is(:hover, :focus-visible) { color: var(--vt-ink-on-dark); }
+.vt-topbar a[aria-current="page"] {
+  color: #FFFFFF;
+  border-bottom-color: var(--vt-orange-500);
+}
+
+/* --------------------------------------------------------------------------
+   5. Work-order state badges (estados de OT)
+   -------------------------------------------------------------------------- */
+.vt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.3em 0.65em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* Light theme: tinted bg + dark text. */
+.vt-badge--abierta     { background: var(--vt-slate-100);   color: var(--vt-navy-700);    border-color: var(--vt-slate-300); }
+.vt-badge--asignada    { background: var(--vt-info-100);    color: var(--vt-info-700);    border-color: color-mix(in srgb, var(--vt-info-700) 25%, transparent); }
+.vt-badge--en-proceso  { background: var(--vt-orange-100);  color: var(--vt-orange-800);  border-color: color-mix(in srgb, var(--vt-orange-700) 30%, transparent); }
+.vt-badge--hecha       { background: var(--vt-success-100); color: var(--vt-success-700); border-color: color-mix(in srgb, var(--vt-success-700) 25%, transparent); }
+.vt-badge--verificada  { background: var(--vt-navy-800);    color: var(--vt-ink-on-dark); border-color: var(--vt-navy-800); }
+.vt-badge--verificada::before { content: "✓"; color: var(--vt-orange-300); font-weight: 700; }
+.vt-badge--cancelada   { background: transparent;           color: var(--vt-slate-500);   border-color: var(--vt-slate-300); text-decoration: line-through; }
+.vt-badge--vencida     { background: var(--vt-danger-100);  color: var(--vt-danger-700);  border-color: color-mix(in srgb, var(--vt-danger-700) 30%, transparent); }
+.vt-badge--critica     { background: var(--vt-warning-100); color: var(--vt-warning-700); border-color: color-mix(in srgb, var(--vt-warning-700) 30%, transparent); }
+
+/* Dark theme: darker tint bg + light text. */
+:where([data-theme="dark"]) .vt-badge--abierta     { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+:where([data-theme="dark"]) .vt-badge--asignada    { background: color-mix(in srgb, var(--vt-info-700) 30%, var(--vt-navy-900)); color: var(--vt-info-300); border-color: color-mix(in srgb, var(--vt-info-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--en-proceso  { background: color-mix(in srgb, var(--vt-orange-600) 26%, var(--vt-navy-900)); color: var(--vt-orange-300); border-color: color-mix(in srgb, var(--vt-orange-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--hecha       { background: color-mix(in srgb, var(--vt-success-700) 32%, var(--vt-navy-900)); color: var(--vt-success-300); border-color: color-mix(in srgb, var(--vt-success-300) 28%, transparent); }
+:where([data-theme="dark"]) .vt-badge--verificada  { background: var(--vt-ink-on-dark); color: var(--vt-navy-900); border-color: var(--vt-ink-on-dark); }
+:where([data-theme="dark"]) .vt-badge--verificada::before { color: var(--vt-orange-600); }
+:where([data-theme="dark"]) .vt-badge--cancelada   { color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+:where([data-theme="dark"]) .vt-badge--vencida     { background: color-mix(in srgb, var(--vt-danger-700) 35%, var(--vt-navy-900)); color: var(--vt-danger-300); border-color: color-mix(in srgb, var(--vt-danger-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--critica     { background: color-mix(in srgb, var(--vt-warning-700) 35%, var(--vt-navy-900)); color: var(--vt-warning-300); border-color: color-mix(in srgb, var(--vt-warning-300) 30%, transparent); }
+
+/* --------------------------------------------------------------------------
+   6. Django messages → alerts (full border + tint; never a side stripe)
+   -------------------------------------------------------------------------- */
+.vt-alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--vt-radius);
+  border: 1px solid var(--vt-slate-300);
+  background: var(--vt-slate-100);
+  color: var(--vt-navy-900);
+  margin-bottom: var(--pico-block-spacing-vertical, 1rem);
+  font-size: 0.9375rem;
+}
+.vt-alert--success { background: var(--vt-success-100); border-color: color-mix(in srgb, var(--vt-success-700) 30%, transparent); color: var(--vt-success-700); }
+.vt-alert--warning { background: var(--vt-warning-100); border-color: color-mix(in srgb, var(--vt-warning-700) 30%, transparent); color: var(--vt-warning-700); }
+.vt-alert--error   { background: var(--vt-danger-100);  border-color: color-mix(in srgb, var(--vt-danger-700) 30%, transparent);  color: var(--vt-danger-700); }
+.vt-alert--info    { background: var(--vt-info-100);    border-color: color-mix(in srgb, var(--vt-info-700) 30%, transparent);    color: var(--vt-info-700); }
+
+/* Compat: templates shipped before the theme use bare tag classes */
+article[role="alert"].success { background: var(--vt-success-100); border: 1px solid color-mix(in srgb, var(--vt-success-700) 30%, transparent); color: var(--vt-success-700); padding: 0.75rem 1rem; border-radius: var(--vt-radius); }
+article[role="alert"].error   { background: var(--vt-danger-100);  border: 1px solid color-mix(in srgb, var(--vt-danger-700) 30%, transparent);  color: var(--vt-danger-700);  padding: 0.75rem 1rem; border-radius: var(--vt-radius); }
+
+:where([data-theme="dark"]) .vt-alert { background: var(--vt-navy-800); border-color: var(--vt-navy-600); color: var(--vt-ink-on-dark); }
+:where([data-theme="dark"]) .vt-alert--success { background: color-mix(in srgb, var(--vt-success-700) 30%, var(--vt-navy-900)); color: var(--vt-success-300); }
+:where([data-theme="dark"]) .vt-alert--warning { background: color-mix(in srgb, var(--vt-warning-700) 30%, var(--vt-navy-900)); color: var(--vt-warning-300); }
+:where([data-theme="dark"]) .vt-alert--error   { background: color-mix(in srgb, var(--vt-danger-700) 32%, var(--vt-navy-900));  color: var(--vt-danger-300); }
+:where([data-theme="dark"]) .vt-alert--info    { background: color-mix(in srgb, var(--vt-info-700) 30%, var(--vt-navy-900));    color: var(--vt-info-300); }
+
+/* --------------------------------------------------------------------------
+   7. Entity lists (equipos, OTs) — rows, not card grids. Mobile-first.
+   -------------------------------------------------------------------------- */
+.vt-list { list-style: none; padding: 0; margin: 0; }
+.vt-list > li { margin: 0; padding: 0; list-style: none; }
+.vt-list > li::marker { content: none; }
+.vt-list > li + li { border-top: 1px solid var(--pico-muted-border-color); }
+
+.vt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.25rem;
+  min-height: 3.25rem;               /* ≥44px touch target */
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--vt-t-fast) var(--vt-ease-out);
+}
+a.vt-row:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--vt-orange-500) 7%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+.vt-row-main { min-width: 0; }
+.vt-row-main strong { display: block; font-size: 0.9375rem; color: var(--vt-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-row-main small  { display: block; color: var(--vt-muted); font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-row-side { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+/* --------------------------------------------------------------------------
+   8. Checklist execution (technician, phone, gloves): big segmented control
+   -------------------------------------------------------------------------- */
+.vt-check-item {
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+.vt-check-item p { margin: 0 0 0.625rem; font-size: 0.9375rem; }
+
+.vt-seg { display: flex; gap: 0.5rem; }
+.vt-seg button {
+  flex: 1;
+  min-height: 2.75rem;               /* 44px */
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--pico-card-background-color);
+  color: var(--pico-muted-color);
+  border: 1px solid var(--pico-form-element-border-color);
+  border-radius: var(--vt-radius);
+  transition: background var(--vt-t-fast) var(--vt-ease-out),
+              border-color var(--vt-t-fast) var(--vt-ease-out),
+              color var(--vt-t-fast) var(--vt-ease-out);
+}
+.vt-seg button[aria-pressed="true"].is-ok   { background: var(--vt-success-100); color: var(--vt-success-700); border-color: var(--vt-success-700); }
+.vt-seg button[aria-pressed="true"].is-fail { background: var(--vt-danger-100);  color: var(--vt-danger-700);  border-color: var(--vt-danger-700); }
+.vt-seg button[aria-pressed="true"].is-na   { background: var(--vt-slate-100);   color: var(--vt-navy-700);    border-color: var(--vt-slate-500); }
+
+:where([data-theme="dark"]) .vt-seg button[aria-pressed="true"].is-ok   { background: color-mix(in srgb, var(--vt-success-700) 32%, var(--vt-navy-900)); color: var(--vt-success-300); border-color: var(--vt-success-300); }
+:where([data-theme="dark"]) .vt-seg button[aria-pressed="true"].is-fail { background: color-mix(in srgb, var(--vt-danger-700) 32%, var(--vt-navy-900));  color: var(--vt-danger-300);  border-color: var(--vt-danger-300); }
+:where([data-theme="dark"]) .vt-seg button[aria-pressed="true"].is-na   { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-slate-400); }
+
+/* --------------------------------------------------------------------------
+   9. Details refinements
+   -------------------------------------------------------------------------- */
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+main.container { max-width: 72ch; padding-block: 1.25rem; }
+main.container--wide { max-width: 1100px; }
+
+/* Buttons: subtle press feedback */
+button, [role="button"], input[type="submit"] {
+  transition: background var(--vt-t-fast) var(--vt-ease-out),
+              border-color var(--vt-t-fast) var(--vt-ease-out),
+              transform 80ms var(--vt-ease-out);
+}
+button:active, [role="button"]:active, input[type="submit"]:active { transform: translateY(1px); }
+
+/* Keyboard focus: visible, brand-colored, offset */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--vt-orange-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
