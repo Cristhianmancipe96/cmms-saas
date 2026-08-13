@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Mantenimiento{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'vendor/pico/pico.min.css' %}">
+    <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
+</head>
+<body>
+    <header class="container">
+        <nav>
+            <ul>
+                <li><strong>Mantenimiento</strong></li>
+            </ul>
+            <ul>
+                {# Nav placeholder — links land as roles/views are built in later briefs. #}
+            </ul>
+        </nav>
+    </header>
+    <main class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <article role="alert" class="{% if message.tags %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </article>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
