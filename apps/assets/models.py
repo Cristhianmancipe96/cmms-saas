@@ -11,7 +11,7 @@ from apps.core.tenancy import CompanyScopedModel
 class AssetCategory(CompanyScopedModel):
     """A user-creatable machine type (e.g. "Empacadora", "Compresor")."""
 
-    name = models.CharField(max_length=100)
+    name = models.CharField("nombre", max_length=100)
 
     class Meta(CompanyScopedModel.Meta):
         ordering = ["name"]
@@ -36,8 +36,12 @@ class Asset(CompanyScopedModel):
         DETENIDO = "detenido", "Detenido"
         DADO_DE_BAJA = "dado_de_baja", "Dado de baja"
 
-    site = models.ForeignKey(Site, on_delete=models.PROTECT, related_name="assets")
-    category = models.ForeignKey(AssetCategory, on_delete=models.PROTECT, related_name="assets")
+    site = models.ForeignKey(
+        Site, on_delete=models.PROTECT, related_name="assets", verbose_name="sitio"
+    )
+    category = models.ForeignKey(
+        AssetCategory, on_delete=models.PROTECT, related_name="assets", verbose_name="categoría"
+    )
     code = models.CharField("código", max_length=50, help_text="Etiqueta interna del equipo.")
     qr_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     name = models.CharField("nombre", max_length=200)
@@ -61,7 +65,7 @@ class Asset(CompanyScopedModel):
     # verifies real image content (Image.verify()) and re-encodes it — a
     # second, uncontrolled validator would only produce inconsistent errors.
     main_photo = models.FileField(
-        upload_to=asset_photo_upload_path, blank=True, null=True, max_length=255
+        "foto principal", upload_to=asset_photo_upload_path, blank=True, null=True, max_length=255
     )
     specs = models.JSONField(
         "ficha técnica",
@@ -123,7 +127,9 @@ class AssetDocument(CompanyScopedModel):
 
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name="documents")
     kind = models.CharField("tipo", max_length=20, choices=Kind.choices, default=Kind.OTRO)
-    file = models.FileField(upload_to=asset_document_upload_path, max_length=255)
+    file = models.FileField(
+        "archivo", upload_to=asset_document_upload_path, max_length=255
+    )
     name = models.CharField("nombre", max_length=200)
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
