@@ -5,7 +5,7 @@ Execute in order — each brief depends on all previous ones unless noted.
 
 - [x] 00 — Bootstrap: Django skeleton, Postgres, CI, first push
 - [x] 01 — Tenancy, accounts and roles
-- [ ] 02 — Assets (equipment records)
+- [x] 02 — Assets (equipment records)
 - [ ] 03 — Checklist templates with versioning
 - [ ] 04 — Maintenance plans and idempotent scheduler
 - [ ] 05 — Work orders: state machine and mobile execution

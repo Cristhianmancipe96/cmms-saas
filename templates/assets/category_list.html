@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Categorías de equipos{% endblock %}
+
+{% block content %}
+    <h1>Categorías de equipos</h1>
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <p><a href="{% url 'assetcategory_create' %}" role="button">Nueva categoría</a></p>
+    {% endif %}
+    <ul class="vt-list">
+        {% for category in categories %}
+            <li>
+                <span class="vt-row"><span class="vt-row-main"><strong>{{ category.name }}</strong></span></span>
+            </li>
+        {% empty %}
+            <li>No hay categorías registradas.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

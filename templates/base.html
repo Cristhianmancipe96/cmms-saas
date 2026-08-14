@@ -24,6 +24,7 @@
             <ul class="vt-nav">
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'site_list' %}">Sitios</a></li>
+                    <li><a href="{% url 'asset_list' %}">Equipos</a></li>
                     {% if user.role == "admin" %}
                         <li><a href="{% url 'user_list' %}">Usuarios</a></li>
                     {% endif %}

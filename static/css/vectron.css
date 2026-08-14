@@ -346,6 +346,26 @@
 :where([data-theme="dark"]) .vt-badge--critica     { background: color-mix(in srgb, var(--vt-warning-700) 35%, var(--vt-navy-900)); color: var(--vt-warning-300); border-color: color-mix(in srgb, var(--vt-warning-300) 30%, transparent); }
 
 /* --------------------------------------------------------------------------
+   5b. Asset status & criticality badges (brief 02) — same tokens as the
+   work-order states above, renamed for this entity: operativo -> success,
+   detenido -> danger, dado_de_baja -> cancelada (strikethrough).
+   -------------------------------------------------------------------------- */
+.vt-badge--operativo      { background: var(--vt-success-100); color: var(--vt-success-700); border-color: color-mix(in srgb, var(--vt-success-700) 25%, transparent); }
+.vt-badge--detenido       { background: var(--vt-danger-100);  color: var(--vt-danger-700);  border-color: color-mix(in srgb, var(--vt-danger-700) 30%, transparent); }
+.vt-badge--dado_de_baja   { background: transparent;           color: var(--vt-slate-500);   border-color: var(--vt-slate-300); text-decoration: line-through; }
+
+.vt-badge--criticidad-alta   { background: var(--vt-warning-100); color: var(--vt-warning-700); border-color: color-mix(in srgb, var(--vt-warning-700) 30%, transparent); }
+.vt-badge--criticidad-media  { background: var(--vt-info-100);    color: var(--vt-info-700);    border-color: color-mix(in srgb, var(--vt-info-700) 25%, transparent); }
+.vt-badge--criticidad-baja   { background: var(--vt-slate-100);   color: var(--vt-navy-700);    border-color: var(--vt-slate-300); }
+
+:where([data-theme="dark"]) .vt-badge--operativo      { background: color-mix(in srgb, var(--vt-success-700) 32%, var(--vt-navy-900)); color: var(--vt-success-300); border-color: color-mix(in srgb, var(--vt-success-300) 28%, transparent); }
+:where([data-theme="dark"]) .vt-badge--detenido       { background: color-mix(in srgb, var(--vt-danger-700) 35%, var(--vt-navy-900));  color: var(--vt-danger-300);  border-color: color-mix(in srgb, var(--vt-danger-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--dado_de_baja   { color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+:where([data-theme="dark"]) .vt-badge--criticidad-alta  { background: color-mix(in srgb, var(--vt-warning-700) 35%, var(--vt-navy-900)); color: var(--vt-warning-300); border-color: color-mix(in srgb, var(--vt-warning-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--criticidad-media { background: color-mix(in srgb, var(--vt-info-700) 30%, var(--vt-navy-900));    color: var(--vt-info-300);    border-color: color-mix(in srgb, var(--vt-info-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--criticidad-baja  { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+
+/* --------------------------------------------------------------------------
    6. Django messages → alerts (full border + tint; never a side stripe)
    -------------------------------------------------------------------------- */
 .vt-alert {

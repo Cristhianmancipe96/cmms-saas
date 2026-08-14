@@ -63,3 +63,19 @@ class UserManagementTests(TestCase):
         target.refresh_from_db()
         assert response.status_code == 200
         assert target.is_active is False
+
+    def test_invite_without_role_is_rejected(self):
+        """Brief 01 review finding: role is blank=True on the model (platform
+        admins carry role=""), but an invited company user must always get a
+        real role — otherwise role_required silently locks them out of every
+        screen with no way to self-fix.
+        """
+        response = self.client.post(
+            reverse("user_invite"),
+            {**VALID_INVITE, "username": "sin_rol", "role": ""},
+            follow=True,
+        )
+
+        assert response.status_code == 200
+        assert not User.objects.filter(username="sin_rol").exists()
+        assert "Rol" in response.content.decode()

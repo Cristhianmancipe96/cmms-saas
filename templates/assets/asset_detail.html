@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}{{ asset.name }}{% endblock %}
+
+{% block content %}
+    <h1>
+        {{ asset.name }}
+        <span class="vt-badge vt-badge--criticidad-{{ asset.criticality }}">{{ asset.get_criticality_display }}</span>
+        <span class="vt-badge vt-badge--{{ asset.status }}">{{ asset.get_status_display }}</span>
+    </h1>
+
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <p>
+            <a href="{% url 'asset_update' asset.pk %}" role="button">Editar</a>
+            {% if asset.status != "dado_de_baja" %}
+                <a href="{% url 'asset_baja' asset.pk %}" role="button" class="secondary">Dar de baja</a>
+            {% endif %}
+            <a href="{% url 'asset_delete' asset.pk %}" role="button" class="secondary">Eliminar</a>
+        </p>
+    {% endif %}
+
+    {% if asset.status == "dado_de_baja" and asset.baja_reason %}
+        <article role="alert" class="vt-alert vt-alert--warning">
+            <strong>Motivo de baja:</strong> {{ asset.baja_reason }}
+        </article>
+    {% endif %}
+
+    {% if asset.main_photo %}
+        <img src="{% url 'asset_photo_download' asset.pk %}" alt="Foto de {{ asset.name }}"
+             style="max-width: 100%; border-radius: var(--vt-radius);">
+    {% endif %}
+
+    <section>
+        <h2>Ficha</h2>
+        <table>
+            <tbody>
+                <tr><th scope="row">Código</th><td>{{ asset.code }}</td></tr>
+                <tr><th scope="row">Sitio</th><td>{{ asset.site.name }}</td></tr>
+                <tr><th scope="row">Categoría</th><td>{{ asset.category.name }}</td></tr>
+                <tr><th scope="row">Marca</th><td>{{ asset.brand|default:"—" }}</td></tr>
+                <tr><th scope="row">Modelo</th><td>{{ asset.model|default:"—" }}</td></tr>
+                <tr><th scope="row">Número de serie</th><td>{{ asset.serial_number|default:"—" }}</td></tr>
+                <tr><th scope="row">Fecha de compra</th><td>{{ asset.purchase_date|default:"—" }}</td></tr>
+                <tr><th scope="row">Garantía hasta</th><td>{{ asset.warranty_until|default:"—" }}</td></tr>
+                <tr><th scope="row">Ubicación específica</th><td>{{ asset.location_detail|default:"—" }}</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Ficha técnica</h2>
+        {% if asset.specs %}
+            <table>
+                <tbody>
+                    {% for pair in asset.specs %}
+                        <tr><th scope="row">{{ pair.key }}</th><td>{{ pair.value }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Sin especificaciones técnicas registradas.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Documentos</h2>
+        <ul class="vt-list">
+            {% for document in asset.documents.all %}
+                <li>
+                    <a class="vt-row" href="{% url 'assetdocument_download' document.pk %}" target="_blank" rel="noopener">
+                        <span class="vt-row-main">
+                            <strong>{{ document.name }}</strong>
+                            <small>{{ document.get_kind_display }} · {{ document.uploaded_at|date:"d/m/Y" }}</small>
+                        </span>
+                    </a>
+                </li>
+            {% empty %}
+                <li>No hay documentos adjuntos.</li>
+            {% endfor %}
+        </ul>
+
+        {% if user.role == "admin" or user.role == "supervisor" %}
+            <form method="post" action="{% url 'assetdocument_upload' asset.pk %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ document_form.as_p }}
+                <button type="submit">Adjuntar documento</button>
+            </form>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Historial</h2>
+        <p>Disponible cuando se active el módulo de órdenes de trabajo (próximamente).</p>
+    </section>
+
+    <p><a href="{% url 'asset_list' %}">&larr; Volver a equipos</a></p>
+{% endblock %}

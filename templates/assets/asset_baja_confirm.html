@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Dar de baja{% endblock %}
+
+{% block content %}
+    <h1>Dar de baja: {{ asset.name }}</h1>
+    <p>El equipo quedará marcado como <strong>dado de baja</strong>. No se elimina — sigue
+        disponible en el historial.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Confirmar baja</button>
+        <a href="{% url 'asset_detail' asset.pk %}" role="button" class="secondary">Cancelar</a>
+    </form>
+{% endblock %}

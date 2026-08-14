@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "apps.core",
     "apps.accounts",
+    "apps.assets",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Equipos{% endblock %}
+
+{% block content %}
+    <h1>Equipos</h1>
+
+    <form method="get" class="grid">
+        <input type="search" name="q" placeholder="Buscar por nombre, código o serie"
+               value="{{ filters.q|default:'' }}">
+        <select name="site">
+            <option value="">Todos los sitios</option>
+            {% for site in sites %}
+                <option value="{{ site.pk }}" {% if filters.site == site.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ site.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <select name="category">
+            <option value="">Todas las categorías</option>
+            {% for category in categories %}
+                <option value="{{ category.pk }}" {% if filters.category == category.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <select name="status">
+            <option value="">Todos los estados</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="criticality">
+            <option value="">Toda criticidad</option>
+            {% for value, label in criticality_choices %}
+                <option value="{{ value }}" {% if filters.criticality == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filtrar</button>
+    </form>
+
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <p><a href="{% url 'asset_create' %}" role="button">Nuevo equipo</a></p>
+    {% endif %}
+
+    <ul class="vt-list">
+        {% for asset in assets %}
+            <li>
+                <a class="vt-row" href="{% url 'asset_detail' asset.pk %}">
+                    <span class="vt-row-main">
+                        <strong>{{ asset.name }}</strong>
+                        <small>{{ asset.code }} · {{ asset.site.name }} · {{ asset.category.name }}</small>
+                    </span>
+                    <span class="vt-row-side">
+                        <span class="vt-badge vt-badge--criticidad-{{ asset.criticality }}">{{ asset.get_criticality_display }}</span>
+                        <span class="vt-badge vt-badge--{{ asset.status }}">{{ asset.get_status_display }}</span>
+                    </span>
+                </a>
+            </li>
+        {% empty %}
+            <li>No hay equipos registrados con esos filtros.</li>
+        {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+        <nav>
+            <ul>
+                {% if page_obj.has_previous %}
+                    <li><a href="?page={{ page_obj.previous_page_number }}">&larr; Anterior</a></li>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <li><a href="?page={{ page_obj.next_page_number }}">Siguiente &rarr;</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% endblock %}

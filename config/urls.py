@@ -11,4 +11,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", core_views.home, name="home"),
     path("", include("apps.accounts.urls")),
+    path("", include("apps.assets.urls")),
 ]

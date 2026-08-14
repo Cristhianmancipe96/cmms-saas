@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_create %}Nuevo equipo{% else %}Editar equipo{% endif %}{% endblock %}
+
+{% block content %}
+    <h1>{% if is_create %}Nuevo equipo{% else %}Editar {{ asset.name }}{% endif %}</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <fieldset>
+            <legend>Ficha técnica</legend>
+            <div id="specs-rows">
+                {% for pair in specs %}
+                    {% include "assets/_specs_row.html" with key=pair.key value=pair.value %}
+                {% endfor %}
+            </div>
+            <button type="button" class="outline"
+                    hx-get="{% url 'asset_spec_row' %}" hx-target="#specs-rows" hx-swap="beforeend">
+                + Agregar campo
+            </button>
+        </fieldset>
+
+        <button type="submit">Guardar</button>
+    </form>
+{% endblock %}
