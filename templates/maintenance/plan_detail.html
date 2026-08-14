@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plan.name }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>{{ plan.name }}</h1>
+        <p>
+            <span class="vt-badge vt-badge--{{ plan.due_state }}">{{ plan.due_label }}</span>
+            <span class="vt-badge vt-badge--abierta">{{ plan.get_kind_display }}</span>
+            <span class="vt-badge vt-badge--asignada">{{ plan.frequency_label }}</span>
+        </p>
+    </hgroup>
+
+    <p>
+        Equipo: <a href="{% url 'asset_detail' plan.asset.pk %}">{{ plan.asset.code }} · {{ plan.asset.name }}</a>
+        <br><small>{{ plan.asset.site.name }}</small>
+    </p>
+
+    {% if not plan.is_active %}
+        <article role="alert" class="vt-alert vt-alert--warning">
+            Este plan está inactivo: no generará órdenes de trabajo hasta que lo actives.
+        </article>
+    {% elif plan.asset.status == "dado_de_baja" %}
+        <article role="alert" class="vt-alert vt-alert--warning">
+            El equipo está dado de baja, así que este plan no generará órdenes de trabajo.
+        </article>
+    {% endif %}
+
+    {% if can_manage %}
+        <div class="vt-actions">
+            <a href="{% url 'maintenanceplan_update' plan.pk %}" role="button">Editar plan</a>
+            <form method="post" action="{% url 'maintenanceplan_toggle' plan.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="secondary outline">
+                    {% if plan.is_active %}Desactivar{% else %}Activar{% endif %}
+                </button>
+            </form>
+            <a href="{% url 'maintenanceplan_delete' plan.pk %}" role="button" class="secondary outline">Eliminar</a>
+        </div>
+    {% endif %}
+
+    <section>
+        <h2>Programación</h2>
+        <table>
+            <tbody>
+                <tr><th scope="row">Frecuencia</th><td>{{ plan.get_frequency_type_display }} · {{ plan.frequency_label }}</td></tr>
+                {% if plan.is_calendar %}
+                    <tr><th scope="row">Próximo vencimiento</th><td>{{ plan.next_due_date|date:"d/m/Y"|default:"—" }}</td></tr>
+                {% else %}
+                    <tr><th scope="row">Horómetro actual</th><td>{% if latest_hours is not None %}{{ latest_hours|floatformat:"-2" }} h{% else %}Sin lecturas{% endif %}</td></tr>
+                    <tr><th scope="row">Horómetro de la última OT</th><td>{{ plan.hours_at_last_generated_wo|floatformat:"-2" }} h</td></tr>
+                {% endif %}
+                <tr><th scope="row">Duración estimada</th><td>{% if plan.estimated_minutes %}{{ plan.estimated_minutes }} min{% else %}—{% endif %}</td></tr>
+                <tr><th scope="row">Responsable por defecto</th><td>{{ plan.default_assignee|default:"Sin asignar" }}</td></tr>
+                <tr>
+                    <th scope="row">Checklist</th>
+                    <td>
+                        {% if resolved_template %}
+                            <a href="{% url 'checklisttemplate_detail' resolved_template.pk %}">{{ resolved_template.name }} v{{ resolved_template.version }}</a>
+                            <br><small>Es la versión activa que usará la próxima OT.</small>
+                        {% elif plan.checklist_template %}
+                            <span>{{ plan.checklist_template.name }}</span>
+                            <br><small>Ninguna versión de esta plantilla está activa; la próxima OT se creará sin checklist.</small>
+                        {% else %}
+                            Sin checklist
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <p><a href="{% url 'maintenanceplan_list' %}">&larr; Volver a planes</a></p>
+{% endblock %}

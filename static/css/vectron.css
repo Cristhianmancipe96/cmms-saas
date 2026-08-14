@@ -376,6 +376,38 @@
 :where([data-theme="dark"]) .vt-badge--inactiva  { color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
 
 /* --------------------------------------------------------------------------
+   5d. Maintenance-plan due badges (brief 04). Same semantic tokens once more,
+   named for the question a plan answers ("¿está vencido?"):
+   vencido -> danger, próximo a vencer -> warning (amber-gold, NOT the brand
+   orange — orange means "en proceso"), al día -> quiet slate so the healthy
+   majority of a list stays silent, sin lecturas -> info, inactivo -> the
+   existing strikethrough treatment.
+   -------------------------------------------------------------------------- */
+.vt-badge--vencido       { background: var(--vt-danger-100);  color: var(--vt-danger-700);  border-color: color-mix(in srgb, var(--vt-danger-700) 30%, transparent); }
+.vt-badge--por_vencer    { background: var(--vt-warning-100); color: var(--vt-warning-700); border-color: color-mix(in srgb, var(--vt-warning-700) 30%, transparent); }
+.vt-badge--al_dia        { background: var(--vt-slate-100);   color: var(--vt-navy-700);    border-color: var(--vt-slate-300); }
+.vt-badge--sin_lecturas  { background: var(--vt-info-100);    color: var(--vt-info-700);    border-color: color-mix(in srgb, var(--vt-info-700) 25%, transparent); }
+.vt-badge--inactivo      { background: transparent;           color: var(--vt-slate-500);   border-color: var(--vt-slate-300); text-decoration: line-through; }
+
+:where([data-theme="dark"]) .vt-badge--vencido      { background: color-mix(in srgb, var(--vt-danger-700) 35%, var(--vt-navy-900));  color: var(--vt-danger-300);  border-color: color-mix(in srgb, var(--vt-danger-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--por_vencer   { background: color-mix(in srgb, var(--vt-warning-700) 35%, var(--vt-navy-900)); color: var(--vt-warning-300); border-color: color-mix(in srgb, var(--vt-warning-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--al_dia       { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+:where([data-theme="dark"]) .vt-badge--sin_lecturas { background: color-mix(in srgb, var(--vt-info-700) 30%, var(--vt-navy-900)); color: var(--vt-info-300); border-color: color-mix(in srgb, var(--vt-info-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--inactivo     { color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+
+/* Row-level emphasis for an overdue plan: a whole-row tint, never a coloured
+   left border (see DESIGN.md). 6% keeps the row's normal ink well above AA —
+   the badge carries the meaning, the tint only guides the eye down the list. */
+.vt-row--vencido { background: color-mix(in srgb, var(--vt-danger-700) 6%, transparent); }
+a.vt-row--vencido:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--vt-danger-700) 12%, transparent); }
+:where([data-theme="dark"]) .vt-row--vencido { background: color-mix(in srgb, var(--vt-danger-700) 16%, transparent); }
+:where([data-theme="dark"]) a.vt-row--vencido:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--vt-danger-700) 26%, transparent); }
+
+/* An inactive plan is still listed (you may want to switch it back on) but
+   must not compete for attention with the live ones. */
+.vt-row--inactivo .vt-row-main strong { color: var(--vt-muted); font-weight: 500; }
+
+/* --------------------------------------------------------------------------
    6. Django messages → alerts (full border + tint; never a side stripe)
    -------------------------------------------------------------------------- */
 .vt-alert {
@@ -463,6 +495,105 @@ a.vt-row:is(:hover, :focus-visible) {
 :where([data-theme="dark"]) .vt-seg button[aria-pressed="true"].is-ok   { background: color-mix(in srgb, var(--vt-success-700) 32%, var(--vt-navy-900)); color: var(--vt-success-300); border-color: var(--vt-success-300); }
 :where([data-theme="dark"]) .vt-seg button[aria-pressed="true"].is-fail { background: color-mix(in srgb, var(--vt-danger-700) 32%, var(--vt-navy-900));  color: var(--vt-danger-300);  border-color: var(--vt-danger-300); }
 :where([data-theme="dark"]) .vt-seg button[aria-pressed="true"].is-na   { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-slate-400); }
+
+/* --------------------------------------------------------------------------
+   8b. Shared screen furniture (brief 04)
+   -------------------------------------------------------------------------- */
+
+/* Visually hidden, still announced: for labels a sighted user reads from
+   context (a filter select) but a screen reader needs spelled out. */
+.vt-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Action rows. Buttons in a bare <p> overflow the viewport at 390px because
+   Pico's <a role="button"> is inline-block with no wrapping contract. */
+.vt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.vt-actions > form { margin: 0; }
+.vt-actions :is(button, a[role="button"], input[type="submit"]) { margin: 0; width: auto; }
+/* Below the fold of a phone, one-per-line beats two cramped half-buttons. */
+@media (max-width: 26rem) {
+  .vt-actions { flex-direction: column; align-items: stretch; }
+  .vt-actions > form { display: flex; }
+  .vt-actions :is(button, a[role="button"], input[type="submit"]) { width: 100%; text-align: center; }
+}
+
+/* Empty states: say what is missing and what to do about it. Quiet by
+   design — an empty list is a normal starting point, not an error. */
+.vt-empty {
+  padding: 1.5rem 1rem;
+  border: 1px dashed var(--pico-muted-border-color);
+  border-radius: var(--vt-radius);
+  color: var(--vt-muted);
+  text-align: center;
+}
+.vt-empty p { margin: 0 0 0.25rem; color: var(--vt-ink); font-weight: 600; }
+.vt-empty small { display: block; margin-bottom: 0.75rem; }
+.vt-empty :is(a[role="button"], button) { width: auto; margin: 0; }
+
+/* Grouped form sections. Pico v2 strips fieldset borders; a form that offers
+   two mutually exclusive modes needs the grouping to be visible, not implied. */
+.vt-fieldset {
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--vt-radius);
+  padding: 0.875rem 1rem 0.25rem;
+  margin-bottom: 1rem;
+}
+.vt-fieldset > legend {
+  padding: 0 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--vt-ink);
+}
+.vt-fieldset > legend + small { display: block; margin-bottom: 0.75rem; color: var(--vt-muted); }
+
+/* Field-level error text. Pico colours the input via aria-invalid; this is
+   the sentence that says why, tied to the input with aria-describedby. */
+.vt-field-error { display: block; margin-top: -0.5rem; margin-bottom: 0.75rem; color: var(--vt-danger-700); font-size: 0.8125rem; }
+:where([data-theme="dark"]) .vt-field-error { color: var(--vt-danger-300); }
+
+/* --------------------------------------------------------------------------
+   8c. Hour-meter panel (brief 04) — the technician's one-number form
+   -------------------------------------------------------------------------- */
+.vt-meter {
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-background-color);
+  padding: 1rem;
+}
+.vt-meter-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--vt-ink);
+  font-variant-numeric: tabular-nums;
+}
+.vt-meter-value small { font-size: 0.9375rem; font-weight: 500; color: var(--vt-muted); }
+.vt-meter-meta { display: block; margin-top: 0.25rem; color: var(--vt-muted); font-size: 0.8125rem; }
+.vt-meter .vt-alert { margin: 1rem 0 0; }
+.vt-meter form { margin: 1rem 0 0; }
+.vt-meter details { margin-top: 1rem; }
+.vt-meter summary { font-size: 0.875rem; color: var(--vt-muted); }
+.vt-meter label { font-size: 0.875rem; }
+.vt-meter input[type="number"] { font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.vt-meter button { width: 100%; min-height: 2.75rem; margin: 0; }
+@media (min-width: 30rem) {
+  .vt-meter button { width: auto; }
+}
 
 /* --------------------------------------------------------------------------
    9. Details refinements

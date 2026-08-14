@@ -42,6 +42,17 @@ indicator, and the `en_proceso` state. If everything is orange, nothing is.
 `verificada` solid navy pill with orange ✓ (sealed evidence) · `vencida` danger ·
 `critica` warning · `cancelada` outline + strikethrough.
 
+## Maintenance-plan states → `.vt-badge--*` (brief 04)
+
+`vencido` danger · `por_vencer` warning amber (a calendar plan due within 7 days, or a
+meter plan past 90% of its interval) · `al_dia` quiet slate — the healthy majority of a
+list must stay silent · `sin_lecturas` info (a meter plan on a machine nobody has read
+yet) · `inactivo` outline + strikethrough.
+
+An overdue row also takes `.vt-row--vencido`: a 6% danger tint across the **whole** row,
+never a coloured left border. The tint guides the eye down a long list; the badge, not
+the colour, carries the meaning.
+
 ## Component rules
 
 - **Top bar** (`.vt-topbar`): navy in both themes, sticky, brand lockup left (mark +
@@ -60,6 +71,18 @@ indicator, and the `en_proceso` state. If everything is orange, nothing is.
   primary action per screen.
 - Headings use `text-wrap: balance`; body text ≤72ch (`main.container`); wide tables
   opt into `main.container--wide`.
+- **Action rows** (`.vt-actions`): flex + wrap, and one button per line below 26rem —
+  Pico's `<a role="button">` is inline-block with no wrapping contract, so a bare `<p>`
+  of buttons overflows a 390px viewport.
+- **Empty states** (`.vt-empty`): dashed border, what is missing in ink + what to do
+  about it in muted + at most one button. An empty list is a starting point, not an
+  error, so it never uses a semantic colour.
+- **Forms**: group mutually exclusive sections in `.vt-fieldset` (Pico v2 strips
+  fieldset borders); render fields through `templates/maintenance/_field.html`, which
+  ties help text and errors to the input with `aria-describedby` and marks invalid
+  inputs `aria-invalid` — `{{ form.as_p }}` does neither.
+- **Hour meter** (`.vt-meter`): the reading is the headline, in `tabular-nums`; one
+  number input (`inputmode="decimal"`) and one full-width ≥44px button under it.
 - Motion: 150ms ease-out transitions on interactive elements only; full
   `prefers-reduced-motion` fallback. No entrance animations on CRUD screens.
 - Z-index: use the `--vt-z-*` scale, never arbitrary numbers.

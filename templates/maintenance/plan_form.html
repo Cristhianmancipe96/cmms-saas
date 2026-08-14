@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_create %}Nuevo plan{% else %}Editar plan{% endif %}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>{% if is_create %}Nuevo plan de mantenimiento{% else %}Editar plan{% endif %}</h1>
+        <p>{{ asset.code }} · {{ asset.name }}</p>
+    </hgroup>
+
+    {% if form.non_field_errors %}
+        <article role="alert" class="vt-alert vt-alert--error">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </article>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% include "maintenance/_field.html" with field=form.name %}
+        {% include "maintenance/_field.html" with field=form.kind %}
+        {% include "maintenance/_field.html" with field=form.frequency_type %}
+
+        <fieldset class="vt-fieldset">
+            <legend>Si el plan es por calendario</legend>
+            <small>Se genera una OT cada cierto tiempo, contando desde la fecha de vencimiento.</small>
+            {% include "maintenance/_field.html" with field=form.interval_preset %}
+            {% include "maintenance/_field.html" with field=form.interval_days %}
+            {% include "maintenance/_field.html" with field=form.next_due_date %}
+        </fieldset>
+
+        <fieldset class="vt-fieldset">
+            <legend>Si el plan es por horómetro</legend>
+            <small>Se genera una OT cuando el equipo acumula las horas de uso indicadas.</small>
+            {% include "maintenance/_field.html" with field=form.meter_interval_hours %}
+        </fieldset>
+
+        {% include "maintenance/_field.html" with field=form.checklist_template %}
+        {% include "maintenance/_field.html" with field=form.default_assignee %}
+        {% include "maintenance/_field.html" with field=form.estimated_minutes %}
+        {% include "maintenance/_field.html" with field=form.is_active %}
+
+        <div class="vt-actions">
+            <button type="submit">Guardar plan</button>
+            {% if is_create %}
+                <a href="{% url 'asset_detail' asset.pk %}" role="button" class="secondary outline">Cancelar</a>
+            {% else %}
+                <a href="{% url 'maintenanceplan_detail' plan.pk %}" role="button" class="secondary outline">Cancelar</a>
+            {% endif %}
+        </div>
+    </form>
+{% endblock %}

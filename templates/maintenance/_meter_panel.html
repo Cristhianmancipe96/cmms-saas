@@ -1,0 +1,53 @@
+{% comment %}
+The horómetro panel. Rendered inside the asset detail page and returned
+whole by the HTMX POST, so the reading, the history and any error message
+always come back consistent — no partial DOM patching to get wrong on a
+weak plant-floor connection. Without JavaScript the same POST falls back to
+a normal form submit plus redirect.
+{% endcomment %}
+<div class="vt-meter" id="panel-horometro">
+    {% if latest_hours is not None %}
+        <span class="vt-meter-value">{{ latest_hours|floatformat:"-2" }} <small>h</small></span>
+        <small class="vt-meter-meta">
+            Última lectura {{ readings.0.read_at|date:"d/m/Y H:i" }}
+            {% if readings.0.recorded_by %}· {{ readings.0.recorded_by }}{% endif %}
+        </small>
+    {% else %}
+        <span class="vt-meter-value">— <small>h</small></span>
+        <small class="vt-meter-meta">Sin lecturas registradas todavía.</small>
+    {% endif %}
+
+    {% if just_saved %}
+        <p role="status" class="vt-alert vt-alert--success">Lectura registrada.</p>
+    {% endif %}
+
+    {% if can_record_reading %}
+        <form method="post"
+              action="{% url 'meterreading_create' asset.pk %}"
+              hx-post="{% url 'meterreading_create' asset.pk %}"
+              hx-target="#panel-horometro"
+              hx-swap="outerHTML">
+            {% csrf_token %}
+            {% include "maintenance/_field.html" with field=meter_form.reading_hours %}
+            <button type="submit">Registrar lectura</button>
+        </form>
+    {% endif %}
+
+    {% if readings %}
+        <details>
+            <summary>Últimas lecturas</summary>
+            <ul class="vt-list">
+                {% for reading in readings %}
+                    <li>
+                        <span class="vt-row">
+                            <span class="vt-row-main">
+                                <strong>{{ reading.reading_hours|floatformat:"-2" }} h</strong>
+                                <small>{{ reading.read_at|date:"d/m/Y H:i" }} · {{ reading.get_source_display }}{% if reading.recorded_by %} · {{ reading.recorded_by }}{% endif %}</small>
+                            </span>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endif %}
+</div>

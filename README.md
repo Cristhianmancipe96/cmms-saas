@@ -72,6 +72,33 @@ uv run ruff check .          # lint
 uv run python manage.py runserver
 ```
 
+### Scheduling the daily job
+
+Preventive work orders are created by a management command, not by a background worker:
+
+```bash
+uv run python manage.py generate_work_orders          # what is due today or overdue
+uv run python manage.py generate_work_orders --horizon 7   # plus the next 7 days
+```
+
+It is idempotent (`UNIQUE(plan_id, due_date)` + `get_or_create`), so running it twice —
+or retrying after a crash — creates nothing new. Run it once a day, early:
+
+**Linux / macOS (cron), 05:00 every day.** `crontab -e`, then:
+
+```bash
+0 5 * * * cd /srv/cmms-saas && /usr/local/bin/uv run python manage.py generate_work_orders >> /var/log/cmms/scheduler.log 2>&1
+```
+
+**Windows (Task Scheduler), 05:00 every day.** In an elevated PowerShell:
+
+```bash
+schtasks /Create /TN "CMMS generate_work_orders" /SC DAILY /ST 05:00 /TR "cmd /c cd /d C:\ruta\cmms-saas && uv run python manage.py generate_work_orders"
+```
+
+Both print one line per company plus a total (`plans evaluated / created /
+skipped-existing`); that summary is what brief 08 forwards to n8n.
+
 No Docker on your machine? SQLite is not an option, not even for tests — create a free
 Postgres instance at [neon.tech](https://neon.tech) or [supabase.com](https://supabase.com)
 and point `DATABASE_URL` in `.env` at it instead of `docker compose`'s `db` service. On

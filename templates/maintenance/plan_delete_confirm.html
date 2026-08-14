@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar plan{% endblock %}
+
+{% block content %}
+    <h1>Eliminar plan</h1>
+
+    <article role="alert" class="vt-alert vt-alert--warning">
+        Vas a eliminar el plan <strong>{{ plan.name }}</strong> del equipo
+        {{ plan.asset.code }}. Esta acción no se puede deshacer.
+        Si solo quieres que deje de generar OTs, desactívalo.
+    </article>
+
+    <div class="vt-actions">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Sí, eliminar</button>
+        </form>
+        <a href="{% url 'maintenanceplan_detail' plan.pk %}" role="button" class="secondary outline">Cancelar</a>
+    </div>
+{% endblock %}

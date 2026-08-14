@@ -1,0 +1,21 @@
+{% load form_fields %}{% comment %}
+One form field, rendered the same way on every maintenance screen: a
+visible label (never a placeholder standing in for one), optional help text,
+and an error sentence tied to the input with aria-describedby.
+{% endcomment %}
+{% if field.field.widget.input_type == "checkbox" %}
+    <label for="{{ field.id_for_label }}">
+        {{ field|control }} {{ field.label }}
+    </label>
+{% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field|control }}
+{% endif %}
+{% if field.help_text %}
+    <small id="{{ field.auto_id }}_help">{{ field.help_text }}</small>
+{% endif %}
+{% if field.errors %}
+    <small class="vt-field-error" id="{{ field.auto_id }}_error">
+        {% for error in field.errors %}{{ error }}{% if not forloop.last %} {% endif %}{% endfor %}
+    </small>
+{% endif %}

@@ -1,0 +1,23 @@
+{% comment %}
+One plan as an entity row (DESIGN.md: lists are rows, never card grids).
+Left: what it is. Right: when it is due — the only thing that decides
+whether the supervisor acts today. Overdue rows carry a whole-row tint on
+top of the badge, so a long list can be triaged by scanning, and the badge
+still carries the meaning for anyone who can't see the tint.
+{% endcomment %}
+<li>
+    <a class="vt-row {% if plan.due_state == 'vencido' %}vt-row--vencido{% elif plan.due_state == 'inactivo' %}vt-row--inactivo{% endif %}"
+       href="{% url 'maintenanceplan_detail' plan.pk %}">
+        <span class="vt-row-main">
+            <strong>{{ plan.name }}</strong>
+            <small>
+                {% if show_asset %}{{ plan.asset.code }} · {% endif %}
+                {{ plan.get_kind_display }} · {{ plan.frequency_label }}
+                {% if plan.is_calendar and plan.next_due_date %} · vence {{ plan.next_due_date|date:"d/m/Y" }}{% endif %}
+            </small>
+        </span>
+        <span class="vt-row-side">
+            <span class="vt-badge vt-badge--{{ plan.due_state }}">{{ plan.due_label }}</span>
+        </span>
+    </a>
+</li>

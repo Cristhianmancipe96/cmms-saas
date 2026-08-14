@@ -7,7 +7,7 @@ Execute in order — each brief depends on all previous ones unless noted.
 - [x] 01 — Tenancy, accounts and roles
 - [x] 02 — Assets (equipment records)
 - [x] 03 — Checklist templates with versioning
-- [ ] 04 — Maintenance plans and idempotent scheduler
+- [x] 04 — Maintenance plans and idempotent scheduler
 - [ ] 05 — Work orders: state machine and mobile execution
 - [ ] 06 — QR flow: live asset view by role
 - [ ] 07 — PDFs (asset record, work-order report) and email

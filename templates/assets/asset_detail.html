@@ -89,6 +89,35 @@
     </section>
 
     <section>
+        <h2>Mantenimiento preventivo</h2>
+        <ul class="vt-list">
+            {% for plan in plans %}
+                {% include "maintenance/_plan_row.html" with plan=plan show_asset=False %}
+            {% empty %}
+                <li>
+                    <div class="vt-empty">
+                        <p>Aún no hay planes para este equipo.</p>
+                        <small>Un plan crea las órdenes de trabajo preventivas solo, cada semana, cada mes o cada X horas de uso.</small>
+                        {% if can_manage_plans %}
+                            <a href="{% url 'maintenanceplan_create' asset.pk %}" role="button">Crear el primer plan</a>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+        {% if can_manage_plans and plans %}
+            <div class="vt-actions">
+                <a href="{% url 'maintenanceplan_create' asset.pk %}" role="button">Nuevo plan</a>
+            </div>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Horómetro</h2>
+        {% include "maintenance/_meter_panel.html" %}
+    </section>
+
+    <section>
         <h2>Historial</h2>
         <p>Disponible cuando se active el módulo de órdenes de trabajo (próximamente).</p>
     </section>

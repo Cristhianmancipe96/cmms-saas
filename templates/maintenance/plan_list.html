@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Planes de mantenimiento{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Planes de mantenimiento</h1>
+        <p>
+            {% if overdue_count %}
+                {{ overdue_count }} plan{{ overdue_count|pluralize:"es" }} vencido{{ overdue_count|pluralize }}.
+            {% else %}
+                Ningún plan vencido.
+            {% endif %}
+        </p>
+    </hgroup>
+
+    <form method="get" class="grid" role="search">
+        <label class="vt-sr-only" for="filtro-estado">Estado</label>
+        <select name="estado" id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="vencidos" {% if filters.estado == "vencidos" %}selected{% endif %}>Vencidos</option>
+            <option value="activos" {% if filters.estado == "activos" %}selected{% endif %}>Activos</option>
+            <option value="inactivos" {% if filters.estado == "inactivos" %}selected{% endif %}>Inactivos</option>
+        </select>
+        <button type="submit">Filtrar</button>
+    </form>
+
+    <ul class="vt-list">
+        {% for plan in plans %}
+            {% include "maintenance/_plan_row.html" with plan=plan show_asset=True %}
+        {% empty %}
+            <li>
+                <div class="vt-empty">
+                    {% if is_filtered %}
+                        <p>No hay planes con esos filtros.</p>
+                        <small>Prueba con otro estado o quita el filtro.</small>
+                        <a href="{% url 'maintenanceplan_list' %}" role="button" class="secondary outline">Ver todos</a>
+                    {% else %}
+                        <p>Aún no hay planes de mantenimiento.</p>
+                        <small>
+                            Los planes se crean desde la ficha de cada equipo: abre un equipo
+                            y usa «Nuevo plan».
+                        </small>
+                        {% if can_manage %}
+                            <a href="{% url 'asset_list' %}" role="button">Ir a equipos</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+        <nav aria-label="Paginación">
+            <p>
+                {% if page_obj.has_previous %}
+                    <a href="?{% if filters.estado %}estado={{ filters.estado }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">&larr; Anterior</a>
+                {% endif %}
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?{% if filters.estado %}estado={{ filters.estado }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Siguiente &rarr;</a>
+                {% endif %}
+            </p>
+        </nav>
+    {% endif %}
+{% endblock %}

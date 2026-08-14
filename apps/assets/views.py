@@ -2,7 +2,7 @@ import os
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import ProtectedError, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView
@@ -17,6 +17,8 @@ from apps.assets.forms import (
 )
 from apps.assets.models import Asset, AssetCategory, AssetDocument, AssetHasDocumentsError
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
+from apps.maintenance import services as maintenance_services
+from apps.maintenance import views as maintenance_views
 
 ALL_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN, User.Role.STAFF)
 MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
@@ -98,6 +100,14 @@ class AssetDetailView(RoleRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["document_form"] = AssetDocumentForm()
+        # Brief 04: the asset record is where preventive plans are created and
+        # where the technician types the hour meter, so both panels live here.
+        asset = self.object
+        context["plans"] = maintenance_services.annotate_due_state(asset.maintenance_plans.all())
+        context["can_manage_plans"] = (
+            self.request.user.is_platform_admin or self.request.user.role in MANAGER_ROLES
+        )
+        context.update(maintenance_views.meter_panel_context(asset, user=self.request.user))
         return context
 
 
@@ -170,6 +180,16 @@ def asset_delete(request, pk):
             asset.delete()
         except AssetHasDocumentsError as error:
             messages.error(request, str(error))
+            return redirect("asset_detail", pk)
+        except ProtectedError:
+            # Brief 04 gave work orders a PROTECT FK to the asset they
+            # document: they are audit evidence and outlive any wish to tidy
+            # up the equipment list.
+            messages.error(
+                request,
+                "No se puede eliminar un equipo con órdenes de trabajo. "
+                "Usa 'Dar de baja' en su lugar.",
+            )
             return redirect("asset_detail", pk)
         messages.success(request, f"Equipo {asset.name} eliminado.")
         return redirect("asset_list")
