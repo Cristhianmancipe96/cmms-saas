@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_create %}Nuevo ítem{% else %}Editar ítem{% endif %}{% endblock %}
+
+{% block content %}
+    <h1>
+        {% if is_create %}Nuevo ítem{% else %}Editar ítem{% endif %}
+        — {{ template.name }}
+    </h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Guardar</button>
+        <a href="{% url 'checklisttemplate_detail' template.pk %}" role="button" class="secondary">Cancelar</a>
+    </form>
+{% endblock %}

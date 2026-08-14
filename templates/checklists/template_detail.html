@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ template.name }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>{{ template.name }}</h1>
+        <p>
+            <span class="vt-badge {% if template.is_active %}vt-badge--activa{% else %}vt-badge--inactiva{% endif %}">
+                {% if template.is_active %}Activa{% else %}Inactiva{% endif %}
+            </span>
+            <span class="vt-badge vt-badge--asignada">v{{ template.version }}</span>
+            {% if template.category %}<span class="vt-badge vt-badge--abierta">{{ template.category.name }}</span>{% endif %}
+            {% if template.is_locked %}<span class="vt-badge vt-badge--critica">Bloqueada (en uso)</span>{% endif %}
+        </p>
+    </hgroup>
+
+    {% if template.parent %}
+        <p><small>Versión anterior:
+            <a href="{% url 'checklisttemplate_detail' template.parent.pk %}">v{{ template.parent.version }}</a>
+        </small></p>
+    {% endif %}
+
+    {% if can_manage %}
+        <p>
+            <a href="{% url 'checklistitem_create' template.pk %}" role="button">+ Agregar ítem</a>
+            <form method="post" action="{% url 'checklisttemplate_duplicate' template.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="secondary outline">Duplicar plantilla</button>
+            </form>
+            {% if template.is_active %}
+                <form method="post" action="{% url 'checklisttemplate_deactivate' template.pk %}" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="secondary outline">Desactivar</button>
+                </form>
+            {% endif %}
+        </p>
+    {% endif %}
+
+    <ul class="vt-list">
+        {% for item in items %}
+            <li>
+                <span class="vt-row">
+                    <span class="vt-row-main">
+                        <strong>{{ item.order }}. {{ item.text }}</strong>
+                        <small>
+                            {{ item.get_item_type_display }}
+                            {% if item.item_type == "numeric" %} · {{ item.min_value }}–{{ item.max_value }} {{ item.unit }}{% endif %}
+                            {% if item.required %} · obligatorio{% endif %}
+                        </small>
+                    </span>
+                    {% if can_manage %}
+                        <span class="vt-row-side">
+                            <a href="{% url 'checklistitem_update' template.pk item.pk %}" role="button" class="outline">Editar</a>
+                            <form method="post" action="{% url 'checklistitem_move_up' template.pk item.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="outline" {% if forloop.first %}disabled{% endif %}>↑</button>
+                            </form>
+                            <form method="post" action="{% url 'checklistitem_move_down' template.pk item.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="outline" {% if forloop.last %}disabled{% endif %}>↓</button>
+                            </form>
+                        </span>
+                    {% endif %}
+                </span>
+            </li>
+        {% empty %}
+            <li>Todavía no hay ítems en esta plantilla.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

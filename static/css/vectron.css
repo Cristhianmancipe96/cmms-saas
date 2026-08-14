@@ -366,6 +366,16 @@
 :where([data-theme="dark"]) .vt-badge--criticidad-baja  { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
 
 /* --------------------------------------------------------------------------
+   5c. Checklist template state badges (brief 03) — same tokens again:
+   activa -> success, inactiva -> cancelada (strikethrough).
+   -------------------------------------------------------------------------- */
+.vt-badge--activa    { background: var(--vt-success-100); color: var(--vt-success-700); border-color: color-mix(in srgb, var(--vt-success-700) 25%, transparent); }
+.vt-badge--inactiva  { background: transparent;           color: var(--vt-slate-500);   border-color: var(--vt-slate-300); text-decoration: line-through; }
+
+:where([data-theme="dark"]) .vt-badge--activa    { background: color-mix(in srgb, var(--vt-success-700) 32%, var(--vt-navy-900)); color: var(--vt-success-300); border-color: color-mix(in srgb, var(--vt-success-300) 28%, transparent); }
+:where([data-theme="dark"]) .vt-badge--inactiva  { color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+
+/* --------------------------------------------------------------------------
    6. Django messages → alerts (full border + tint; never a side stripe)
    -------------------------------------------------------------------------- */
 .vt-alert {

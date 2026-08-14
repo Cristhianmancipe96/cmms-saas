@@ -46,13 +46,28 @@ class SiteFactory(DjangoModelFactory):
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
+        skip_postgeneration_save = True
 
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
     company = factory.SubFactory(CompanyFactory)
     role = User.Role.TECHNICIAN
     is_active = True
-    password = factory.PostGenerationMethodCall("set_password", "testpass123")
+
+    @factory.post_generation
+    def password(self, create, extracted, **kwargs):
+        # Unlike CompanyFactory's `subscription` hook, this one DOES mutate
+        # `self` (set_password only sets self.password in memory — it never
+        # saves). skip_postgeneration_save means factory_boy won't save
+        # again after this runs, so the hook must save explicitly, or the
+        # DB row keeps its unusable placeholder password forever: the login
+        # session's auth hash (computed from the in-memory hashed password)
+        # would then never match the DB's, and every request after the
+        # first silently drops back to AnonymousUser.
+        if not create:
+            return
+        self.set_password(extracted or "testpass123")
+        self.save(update_fields=["password"])
 
 
 class AdminUserFactory(UserFactory):

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Plantillas de checklist{% endblock %}
+
+{% block content %}
+    <h1>Plantillas de checklist</h1>
+
+    <form method="get" class="grid">
+        <select name="category">
+            <option value="">Todas las categorías</option>
+            {% for category in categories %}
+                <option value="{{ category.pk }}" {% if filters.category == category.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <select name="estado">
+            <option value="">Todas</option>
+            <option value="activa" {% if filters.estado == "activa" %}selected{% endif %}>Activas</option>
+            <option value="inactiva" {% if filters.estado == "inactiva" %}selected{% endif %}>Inactivas</option>
+        </select>
+        <button type="submit">Filtrar</button>
+    </form>
+
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <p><a href="{% url 'checklisttemplate_create' %}" role="button">Nueva plantilla</a></p>
+    {% endif %}
+
+    <ul class="vt-list">
+        {% for template in templates %}
+            <li>
+                <a class="vt-row" href="{% url 'checklisttemplate_detail' template.pk %}">
+                    <span class="vt-row-main">
+                        <strong>{{ template.name }}</strong>
+                        <small>
+                            {% if template.category %}{{ template.category.name }}{% else %}Sin categoría{% endif %}
+                            {% if template.parent %} · viene de v{{ template.parent.version }}{% endif %}
+                        </small>
+                    </span>
+                    <span class="vt-row-side">
+                        <span class="vt-badge vt-badge--asignada">v{{ template.version }}</span>
+                        <span class="vt-badge {% if template.is_active %}vt-badge--activa{% else %}vt-badge--inactiva{% endif %}">
+                            {% if template.is_active %}Activa{% else %}Inactiva{% endif %}
+                        </span>
+                    </span>
+                </a>
+            </li>
+        {% empty %}
+            <li>No hay plantillas con esos filtros.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

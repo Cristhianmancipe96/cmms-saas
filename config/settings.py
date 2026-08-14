@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.accounts",
     "apps.assets",
+    "apps.checklists",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
