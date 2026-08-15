@@ -11,7 +11,7 @@ Execute in order — each brief depends on all previous ones unless noted.
 - [x] 05 — Work orders: state machine and mobile execution
 - [x] 06 — QR flow: live asset view by role
 - [x] 07 — PDFs (asset record, work-order report) and email
-- [ ] 08 — Failure requests, audit log, n8n webhook stub
+- [x] 08 — Failure requests, audit log, n8n webhook stub
 - [ ] 09 — Dashboard and KPIs in raw SQL
 - [ ] 10 — Demo seeds, E2E smoke, polish
 - [ ] 11 — Security hardening and deploy readiness

@@ -1,0 +1,23 @@
+{% comment %}
+One failure report in a list. Same shape as `_work_order_row.html`: the whole
+row is the link, the badge carries the state, ≥44px tall. A report waiting for
+a decision takes a quiet amber tint so a supervisor scrolling the queue sees
+the pending ones without reading the badges one by one.
+{% endcomment %}
+<li>
+    <a class="vt-row{% if solicitud.is_open %} vt-row--pendiente{% endif %}"
+       href="{% url 'maintenancerequest_detail' solicitud.pk %}">
+        <span class="vt-row-main">
+            <strong>#{{ solicitud.pk }} · {{ solicitud.asset.code }} — {{ solicitud.asset.name }}</strong>
+            <small>
+                {{ solicitud.created_at|date:"d/m/Y H:i" }}
+                {% if show_reporter %} · {{ solicitud.reported_by }}{% endif %}
+                {% if solicitud.summary %} · {{ solicitud.summary }}{% endif %}
+            </small>
+        </span>
+        <span class="vt-row-side">
+            {% if solicitud.photo %}<span class="vt-chip" title="Con foto">📷</span>{% endif %}
+            <span class="vt-badge vt-badge--{{ solicitud.badge_modifier }}">{{ solicitud.get_status_display }}</span>
+        </span>
+    </a>
+</li>

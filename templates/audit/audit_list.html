@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% comment %}
+The audit log, read on a screen instead of exported to a spreadsheet.
+
+Not a table: at 390px a six-column table of actions, models, ids, people and
+timestamps is a horizontal scrollbar with data in it. Each entry is a block
+instead — what happened on the first line, who and when underneath, and the
+changed fields as «campo: de → a» rows. The same block reads fine on a desktop,
+where it becomes a dense list rather than a grid nobody scans.
+
+There is no edit or delete control anywhere on this page, and that is not what
+makes the rows immutable: the model refuses every write after the insert
+(apps/audit/models.py). This screen simply has nothing to offer.
+{% endcomment %}
+
+{% block title %}Auditoría{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Registro de auditoría</h1>
+        <p>Quién hizo qué, y cuándo. Las filas no se editan ni se borran.</p>
+    </hgroup>
+
+    <form method="get" class="vt-filters" role="search">
+        <label class="vt-sr-only" for="filtro-usuario">Usuario</label>
+        <select name="usuario" id="filtro-usuario">
+            <option value="">Cualquier usuario</option>
+            {% for person in people %}
+                <option value="{{ person.pk }}" {% if filters.usuario == person.pk|stringformat:"s" %}selected{% endif %}>{{ person }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-sr-only" for="filtro-accion">Acción</label>
+        <select name="accion" id="filtro-accion">
+            <option value="">Todas las acciones</option>
+            {% for value, label in action_choices %}
+                <option value="{{ value }}" {% if filters.accion == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-sr-only" for="filtro-modelo">Módulo</label>
+        <select name="modelo" id="filtro-modelo">
+            <option value="">Todos los módulos</option>
+            {% for value, label in model_choices %}
+                <option value="{{ value }}" {% if filters.modelo == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-field-inline">
+            <span>Desde</span>
+            <input type="date" name="desde" value="{{ filters.desde|default:'' }}">
+        </label>
+        <label class="vt-field-inline">
+            <span>Hasta</span>
+            <input type="date" name="hasta" value="{{ filters.hasta|default:'' }}">
+        </label>
+
+        <button type="submit">Filtrar</button>
+    </form>
+
+    <ul class="vt-audit">
+        {% for entry in entries %}
+            <li>
+                <p class="vt-audit-head">
+                    <span class="vt-badge vt-badge--accion-{{ entry.action }}">{{ entry.get_action_display }}</span>
+                    <strong>{{ entry.object_repr }}</strong>
+                </p>
+                <p class="vt-audit-meta">
+                    {{ entry.actor_name }} · {{ entry.created_at|date:"d/m/Y H:i" }}
+                    · {{ entry.model_label }}#{{ entry.object_id }}
+                    {% if entry.ip_address %} · {{ entry.ip_address }}{% endif %}
+                </p>
+                {% if entry.change_rows %}
+                    <ul class="vt-audit-changes">
+                        {% for row in entry.change_rows %}
+                            <li>
+                                <span class="vt-audit-field">{{ row.field }}</span>
+                                <span class="vt-audit-value">{{ row.old|default_if_none:"—" }}</span>
+                                <span class="vt-audit-arrow" aria-label="cambió a">→</span>
+                                <span class="vt-audit-value">{{ row.new|default_if_none:"—" }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% empty %}
+            <li>
+                <div class="vt-empty">
+                    {% if is_filtered %}
+                        <p>No hay movimientos con esos filtros.</p>
+                        <small>Prueba con otro rango de fechas o quita el filtro.</small>
+                        <a href="{% url 'auditlog_list' %}" role="button" class="secondary outline">Ver todo</a>
+                    {% else %}
+                        <p>Todavía no hay movimientos registrados.</p>
+                        <small>Aquí aparece cada OT que cambia de estado, cada solicitud decidida, cada equipo o plan editado y cada documento enviado.</small>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+        <nav aria-label="Paginación">
+            <p>
+                {% if page_obj.has_previous %}
+                    <a href="?{{ querystring }}page={{ page_obj.previous_page_number }}">&larr; Anterior</a>
+                {% endif %}
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?{{ querystring }}page={{ page_obj.next_page_number }}">Siguiente &rarr;</a>
+                {% endif %}
+            </p>
+        </nav>
+    {% endif %}
+{% endblock %}

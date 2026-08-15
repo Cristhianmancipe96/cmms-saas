@@ -21,9 +21,16 @@ Everything else — `http:`, `https:`, `file:`, `data:`, a bare relative path �
 raises. `base_url` is `None` for the same reason: a relative URL has nothing to
 resolve against and fails closed instead of falling back to the working
 directory.
+
+`fetch` answers with a `Resource` of our own, and `make_url_fetcher` wraps that
+in WeasyPrint's `URLFetcherResponse` (brief 08 carry-over: the dict form the
+brief-07 code returned is deprecated as of WeasyPrint 69 and is removed next).
+The split is not ceremony — it is what lets the fence be tested on a machine
+where WeasyPrint cannot be imported at all.
 """
 
 import mimetypes
+from dataclasses import dataclass
 from pathlib import Path
 
 from django.conf import settings
@@ -63,7 +70,25 @@ def media_url(storage_name: str) -> str:
 # --- The fetcher ------------------------------------------------------------
 
 
-def fetch(url: str, allowed_media_names=()) -> dict:
+@dataclass(frozen=True)
+class Resource:
+    """One file the fence agreed to hand over.
+
+    Ours, not WeasyPrint's, on purpose: `fetch` is the security boundary and is
+    tested on machines where WeasyPrint cannot even be imported (no GTK). The
+    translation into the renderer's own response type happens one layer out, in
+    `make_url_fetcher`, which is the only code that needs the engine present.
+    """
+
+    path: Path
+    content_type: str
+
+    def open(self):
+        """A fresh binary handle. The caller closes it — WeasyPrint does."""
+        return self.path.open("rb")
+
+
+def fetch(url: str, allowed_media_names=()) -> Resource:
     """Resolve one internal URL, or refuse. The whole fence, in one function."""
     scheme, separator, rest = url.partition(":")
     if not separator or scheme != INTERNAL_SCHEME:
@@ -78,18 +103,45 @@ def fetch(url: str, allowed_media_names=()) -> dict:
     else:
         raise ResourceDenied(f"Ruta interna no reconocida: {url!r}.")
 
-    return {
-        "file_obj": path.open("rb"),
-        "mime_type": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
-    }
+    return Resource(
+        path=path,
+        content_type=mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+    )
+
+
+def _response_class():
+    """WeasyPrint's `URLFetcherResponse`, imported at the last possible moment.
+
+    Two reasons it is not a module-level import. First, `weasyprint.urls` pulls
+    in `weasyprint/__init__.py`, which loads Pango and HarfBuzz through GTK —
+    absent on Windows without the runtime — and this module has to stay
+    importable there, since the fence tests are the ones that must never be
+    skipped. Second, it keeps the *denial* path free of the engine: `fetch`
+    refuses an external URL before this function is ever called.
+
+    Returning the real class matters, and a look-alike of our own would not do:
+    WeasyPrint checks `isinstance(resource, URLFetcherResponse)` and rejects
+    anything else. Returning a dict still works in WeasyPrint 69 but is
+    deprecated, and a deprecation warning in a PDF pipeline is a countdown.
+    """
+    try:
+        from weasyprint.urls import URLFetcherResponse
+    except Exception as error:  # ImportError, or OSError when GTK is missing
+        raise PdfEngineUnavailable(PDF_ENGINE_MESSAGE) from error
+    return URLFetcherResponse
 
 
 def make_url_fetcher(allowed_media_names=()):
     """The callable handed to WeasyPrint, closed over this document's allow-list."""
     allowed = frozenset(allowed_media_names)
 
-    def url_fetcher(url: str) -> dict:
-        return fetch(url, allowed)
+    def url_fetcher(url: str):
+        resource = fetch(url, allowed)
+        return _response_class()(
+            url,
+            body=resource.open(),
+            headers={"Content-Type": resource.content_type},
+        )
 
     return url_fetcher
 

@@ -148,5 +148,17 @@ in front of a stopped machine.
         </section>
     {% endif %}
 
+    {% comment %}
+    Brief 08. Outside the audience blocks on purpose: this template only ever
+    renders for someone the scan already resolved as a member of the machine's
+    company (anyone else gets the plate), and every one of those people —
+    technician, supervisor, office staff alike — may say "esto está fallando".
+    That is the whole point of a solicitud: the report is open, the decision is
+    not.
+    {% endcomment %}
+    <div class="vt-actions">
+        <a href="{% url 'maintenancerequest_create' asset.pk %}" role="button">Reportar falla</a>
+    </div>
+
     <p><a href="{% url 'asset_detail' asset.pk %}">Ver la hoja de vida completa &rarr;</a></p>
 {% endblock %}

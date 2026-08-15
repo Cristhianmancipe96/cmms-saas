@@ -27,12 +27,14 @@
                         <li><a href="{% url 'workorder_mine' %}">Mis OTs</a></li>
                     {% endif %}
                     <li><a href="{% url 'workorder_list' %}">OTs</a></li>
+                    <li><a href="{% url 'maintenancerequest_list' %}">Solicitudes</a></li>
                     <li><a href="{% url 'site_list' %}">Sitios</a></li>
                     <li><a href="{% url 'asset_list' %}">Equipos</a></li>
                     <li><a href="{% url 'maintenanceplan_list' %}">Planes</a></li>
                     <li><a href="{% url 'checklisttemplate_list' %}">Checklists</a></li>
                     {% if user.role == "admin" %}
                         <li><a href="{% url 'user_list' %}">Usuarios</a></li>
+                        <li><a href="{% url 'auditlog_list' %}">Auditoría</a></li>
                     {% endif %}
                     <li><a href="{% url 'password_change' %}">Contraseña</a></li>
                     <li>

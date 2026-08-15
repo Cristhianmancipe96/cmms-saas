@@ -8,6 +8,19 @@
         <p><a href="{% url 'asset_detail' wo.asset.pk %}">{{ wo.asset.code }} — {{ wo.asset.name }}</a> · {{ wo.asset.site.name }}</p>
     </hgroup>
 
+    {% if wo.source_request_id %}
+        {% comment %}
+        Brief 08: an OT born from a failure report says so, and links back. The
+        auditor's question — "¿de dónde salió esta orden?" — is answered on the
+        object itself, not by cross-reading the audit log.
+        {% endcomment %}
+        <p class="vt-meta">
+            Abierta a partir de la
+            <a href="{% url 'maintenancerequest_detail' wo.source_request_id %}">solicitud #{{ wo.source_request_id }}</a>,
+            reportada por {{ wo.source_request.reported_by }} el {{ wo.source_request.created_at|date:"d/m/Y H:i" }}.
+        </p>
+    {% endif %}
+
     {% if wo.status == "verificada" %}
         {% comment %}
         The seal, stated once and plainly. A verified work order is evidence:

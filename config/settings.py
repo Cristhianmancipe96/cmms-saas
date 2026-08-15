@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "apps.maintenance",
     "apps.workorders",
     "apps.reports",
+    "apps.requests_",
+    "apps.audit",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -156,6 +158,23 @@ EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=20)
 DEFAULT_FROM_EMAIL = env.str(
     "DEFAULT_FROM_EMAIL", default="Vectron Management <no-reply@vectron.local>"
 )
+
+# n8n webhook (brief 08)
+#
+# All three are optional and the product is fully functional with none of them
+# set — that is the rule, not a convenience: PLAN §7 says a dead n8n must not
+# take the CMMS with it, and "not configured" is the same code path as "not
+# answering" (apps/core/webhooks.py). The token is a secret and lives only in
+# the environment; it travels in a header, never in a payload and never in a
+# log line.
+#
+# The timeout is short and paid on a background thread, so even a black-holed
+# endpoint costs the operator nothing.
+
+N8N_WEBHOOK_URL = env.str("N8N_WEBHOOK_URL", default="")
+N8N_WEBHOOK_TOKEN = env.str("N8N_WEBHOOK_TOKEN", default="")
+N8N_WEBHOOK_TIMEOUT = env.float("N8N_WEBHOOK_TIMEOUT", default=3.0)
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

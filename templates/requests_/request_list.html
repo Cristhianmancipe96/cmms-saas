@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% comment %}
+One template, two screens, decided by `can_review` — which is resolved once in
+`services.may_review` and never re-derived from `user.role` here. A supervisor
+reads a queue with a number at the top; everyone else reads their own reports
+and the answers they got.
+{% endcomment %}
+
+{% block title %}Solicitudes{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>{% if can_review %}Solicitudes de mantenimiento{% else %}Mis reportes de falla{% endif %}</h1>
+        <p>
+            {% if can_review %}
+                {% if open_count %}
+                    {{ open_count }} sin revisar.
+                {% else %}
+                    Ninguna sin revisar.
+                {% endif %}
+            {% else %}
+                Las fallas que has reportado y en qué quedaron.
+            {% endif %}
+        </p>
+    </hgroup>
+
+    <form method="get" class="vt-filters" role="search">
+        <label class="vt-sr-only" for="filtro-estado">Estado</label>
+        <select name="estado" id="filtro-estado">
+            <option value="">Todos los estados</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if filters.estado == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-sr-only" for="filtro-equipo">Equipo</label>
+        <select name="equipo" id="filtro-equipo">
+            <option value="">Todos los equipos</option>
+            {% for asset in assets %}
+                <option value="{{ asset.pk }}" {% if filters.equipo == asset.pk|stringformat:"s" %}selected{% endif %}>{{ asset.code }} — {{ asset.name }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Filtrar</button>
+    </form>
+
+    <ul class="vt-list">
+        {% for solicitud in requests %}
+            {% include "requests_/_request_row.html" with solicitud=solicitud show_reporter=can_review %}
+        {% empty %}
+            <li>
+                <div class="vt-empty">
+                    {% if is_filtered %}
+                        <p>No hay solicitudes con esos filtros.</p>
+                        <small>Prueba con otro estado o quita el filtro.</small>
+                        <a href="{% url 'maintenancerequest_list' %}" role="button" class="secondary outline">Ver todas</a>
+                    {% else %}
+                        <p>Todavía no hay solicitudes.</p>
+                        <small>Una falla se reporta desde la ficha del equipo, o escaneando su código QR.</small>
+                        <a href="{% url 'asset_list' %}" role="button" class="secondary outline">Ir a equipos</a>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+        <nav aria-label="Paginación">
+            <p>
+                {% if page_obj.has_previous %}
+                    <a href="?{{ querystring }}page={{ page_obj.previous_page_number }}">&larr; Anterior</a>
+                {% endif %}
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?{{ querystring }}page={{ page_obj.next_page_number }}">Siguiente &rarr;</a>
+                {% endif %}
+            </p>
+        </nav>
+    {% endif %}
+{% endblock %}

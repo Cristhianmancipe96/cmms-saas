@@ -34,7 +34,10 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.assets.models import Asset
+from apps.audit import services as audit
+from apps.audit.models import AuditLog
 from apps.checklists.models import ChecklistTemplate, ChecklistTemplateItem
+from apps.core import webhooks
 from apps.maintenance.models import MaintenancePlan, MeterReading, record_reading
 from apps.workorders.models import (
     SEALED_MESSAGE,
@@ -461,8 +464,30 @@ APPLY = {
 }
 
 
+# What the audit log watches on a work order. A fixed list, snapshotted before
+# and after the transition and diffed: the alternative — trusting each
+# `_apply_*` to report its own changed fields — would make the log only as
+# complete as the newest apply function's memory.
+AUDITED_FIELDS = (
+    "status",
+    "assigned_to",
+    "started_at",
+    "finished_at",
+    "completed_by",
+    "verified_by",
+    "verified_at",
+    "cancel_reason",
+    "work_done",
+    "downtime_minutes",
+    "labor_cost_cop",
+    "parts_cost_cop",
+)
+
+
 @transaction.atomic
-def transition(work_order: WorkOrder, action: str, user, **payload) -> WorkOrder:
+def transition(
+    work_order: WorkOrder, action: str, user, *, http_request=None, **payload
+) -> WorkOrder:
     """Move a work order through the matrix, or refuse in Spanish.
 
     Re-reads the row under `select_for_update` before deciding anything: the
@@ -495,9 +520,46 @@ def transition(work_order: WorkOrder, action: str, user, **payload) -> WorkOrder
     if denial:
         raise NotAllowed(denial)
 
+    previous = audit.snapshot(locked, AUDITED_FIELDS)
     changed_fields = APPLY[action](locked, user, payload)
     locked.status = rule.to_status
     locked.save(update_fields=[*changed_fields, "status", "updated_at"])
+
+    # Brief 08. Inside the transaction on purpose: a transition nobody can
+    # prove happened is worth less than one that did not happen at all, so if
+    # the audit row cannot be written the state change goes back with it. The
+    # webhook below is the exact opposite — see apps/core/webhooks.py.
+    audit.record(
+        action=AuditLog.Action.TRANSITION,
+        instance=locked,
+        user=user,
+        changes=audit.diff(previous, audit.snapshot(locked, AUDITED_FIELDS), instance=locked),
+        request=http_request,
+        # Spelled out rather than left to `WorkOrder.__str__`, which is built
+        # for a shell prompt and reads «OT #4 · 3 · None» — an asset id and a
+        # missing date. The number is what people cite ("la OT 4") and the type
+        # is free; the machine is one click away and is not worth a join on the
+        # locking query.
+        object_repr=f"OT #{locked.pk} · {locked.get_type_display()}",
+    )
+
+    if action == VERIFY:
+        # Emitted here rather than from a signal because `transition` is the
+        # only door to `verificada` (that is what this module is for), while
+        # work orders are legitimately *created* by three different callers —
+        # hence the post_save receiver in apps/workorders/signals.py.
+        webhooks.emit(
+            webhooks.EVENT_WORK_ORDER_VERIFIED,
+            company_id=locked.company_id,
+            object_type="orden_de_trabajo",
+            object_id=locked.pk,
+            data={
+                "estado": locked.status,
+                "equipo_id": locked.asset_id,
+                "tipo": locked.type,
+                "origen": locked.origin,
+            },
+        )
     return locked
 
 

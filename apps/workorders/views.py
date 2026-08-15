@@ -63,6 +63,10 @@ def _base_queryset():
         # and the list rows render the asset and assignee — all FKs, all
         # fetched up front so a page of 25 rows is one query, not 76.
         "checklist_template",
+        # Brief 08: the detail screen names who reported the failure this OT
+        # came from, which is two joins away (request → reporter).
+        "source_request",
+        "source_request__reported_by",
     )
 
 
@@ -406,7 +410,7 @@ def work_order_photo_download(request, pk, photo_pk):
 def _run(request, work_order: WorkOrder, action: str, **payload) -> bool:
     """Apply a transition and turn any refusal into a Spanish message."""
     try:
-        services.transition(work_order, action, request.user, **payload)
+        services.transition(work_order, action, request.user, http_request=request, **payload)
     except services.WorkOrderError as error:
         messages.error(request, str(error))
         return False

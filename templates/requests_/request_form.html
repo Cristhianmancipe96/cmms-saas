@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% comment %}
+«Reportar falla» — written on a phone, in front of a stopped machine, by
+somebody whose job is probably not maintenance.
+
+So: the machine is named at the top (you must never wonder which one you are
+reporting), there are exactly two fields, the camera is one tap away, and the
+only button is full-width at the bottom. Everything else on this screen is a
+way to not finish the report.
+{% endcomment %}
+
+{% block title %}Reportar falla · {{ asset.code }}{% endblock %}
+
+{% block content %}
+    <hgroup class="vt-scan-id">
+        <h1>
+            <span class="vt-scan-code">{{ asset.code }}</span>
+            <span class="vt-scan-name">{{ asset.name }}</span>
+        </h1>
+        <p class="vt-scan-meta">
+            {{ asset.site.name }}{% if asset.location_detail %} · {{ asset.location_detail }}{% endif %}
+        </p>
+    </hgroup>
+
+    <p class="vt-report-lead">
+        Cuenta qué está pasando. Un supervisor lo revisa y decide si abre una
+        orden de trabajo; tú ves aquí mismo en qué quedó.
+    </p>
+
+    <form method="post" enctype="multipart/form-data" class="vt-report">
+        {% csrf_token %}
+        {% include "maintenance/_field.html" with field=form.description %}
+        {% include "maintenance/_field.html" with field=form.photo %}
+        <button type="submit" class="vt-submit-lg">Reportar falla</button>
+    </form>
+
+    <p>
+        <a href="{% url 'asset_detail' asset.pk %}">&larr; Volver al equipo</a>
+    </p>
+{% endblock %}

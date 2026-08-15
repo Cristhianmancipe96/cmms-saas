@@ -7,6 +7,8 @@ from django.views.generic import ListView
 
 from apps.accounts.models import User
 from apps.assets.models import Asset
+from apps.audit import services as audit
+from apps.audit.models import AuditLog
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
 from apps.maintenance import services
 from apps.maintenance.forms import MaintenancePlanForm, MeterReadingForm
@@ -20,6 +22,21 @@ MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
 READING_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN)
 
 RECENT_READINGS = 5
+
+# What the audit log watches on a plan (brief 08): what it schedules, how
+# often, for whom — the fields that decide when a machine gets touched.
+AUDITED_PLAN_FIELDS = (
+    "name",
+    "kind",
+    "frequency_type",
+    "interval_days",
+    "meter_interval_hours",
+    "checklist_template",
+    "default_assignee",
+    "next_due_date",
+    "estimated_minutes",
+    "is_active",
+)
 
 PLAN_NOT_DELETABLE = (
     "No se puede eliminar un plan que ya generó órdenes de trabajo. "
@@ -120,6 +137,13 @@ def plan_create(request, asset_pk):
                 # generate a work order on the very next scheduler run.
                 plan.hours_at_last_generated_wo = services.latest_reading_hours(asset.pk) or 0
             plan.save()
+            audit.record(
+                action=AuditLog.Action.CREATE,
+                instance=plan,
+                user=request.user,
+                changes=audit.created(plan, AUDITED_PLAN_FIELDS),
+                request=request,
+            )
             messages.success(request, f"Plan {plan.name} creado.")
             return redirect("maintenanceplan_detail", plan.pk)
     else:
@@ -137,6 +161,9 @@ def plan_update(request, pk):
     plan = get_object_or_404(MaintenancePlan.objects.select_related("asset"), pk=pk)
 
     was_calendar = plan.is_calendar
+    # Before the form is built: `is_valid()` writes the posted values onto
+    # `instance`, so a later snapshot would photograph the new row.
+    before = audit.snapshot(plan, AUDITED_PLAN_FIELDS)
 
     if request.method == "POST":
         form = MaintenancePlanForm(request.POST, instance=plan, company=company)
@@ -150,6 +177,15 @@ def plan_update(request, pk):
                 # away the progress since the last generated work order.
                 plan.hours_at_last_generated_wo = services.latest_reading_hours(plan.asset_id) or 0
             plan.save()
+            audit.record(
+                action=AuditLog.Action.UPDATE,
+                instance=plan,
+                user=request.user,
+                changes=audit.diff(
+                    before, audit.snapshot(plan, AUDITED_PLAN_FIELDS), instance=plan
+                ),
+                request=request,
+            )
             messages.success(request, f"Plan {plan.name} actualizado.")
             return redirect("maintenanceplan_detail", plan.pk)
     else:
@@ -165,8 +201,16 @@ def plan_update(request, pk):
 @require_POST
 def plan_toggle_active(request, pk):
     plan = get_object_or_404(MaintenancePlan, pk=pk)
+    before = audit.snapshot(plan, ("is_active",))
     plan.is_active = not plan.is_active
     plan.save(update_fields=["is_active", "updated_at"])
+    audit.record(
+        action=AuditLog.Action.UPDATE,
+        instance=plan,
+        user=request.user,
+        changes=audit.diff(before, audit.snapshot(plan, ("is_active",)), instance=plan),
+        request=request,
+    )
     if plan.is_active:
         messages.success(request, f"Plan {plan.name} activado.")
     else:

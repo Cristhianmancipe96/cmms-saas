@@ -148,6 +148,49 @@ of the fact that **the app does not know who is holding the phone until it does*
   what the operator needs before pressing Ctrl+P is the paper settings (100% scale, no
   headers), which the page states.
 
+## Failure reports and the audit log (brief 08)
+
+Scene for the report: the same plant floor as the execution screen, but the person
+holding the phone may never have opened this app before — a machine operator, someone
+from the office walking past. Every decision below is about not losing them.
+
+- **`.vt-report`** — two fields and one full-width button, nothing else. The machine is
+  named at the top in the `.vt-scan-id` lockup, so «which one am I reporting?» is never a
+  question. The textarea is `1rem`: below 16px iOS zooms the page on focus, and a viewport
+  that jumps mid-sentence is how a half-written report gets abandoned. The photo input is
+  `capture="environment"` at the 48px plant-floor size.
+- **Request state badges** — no new colours: `nueva` amber (the "necesita a alguien
+  pronto" already used by `por_vencer`), `convertida` success, `rechazada` the quiet
+  strikethrough of `cancelada`/`inactiva`. Amber and never the brand orange, which means
+  «en proceso» everywhere else in the product.
+- **`.vt-row--pendiente`** — an undecided report takes a 6% amber whole-row tint, the same
+  device as `.vt-row--vencido` in danger: it guides the eye down a supervisor's queue while
+  the badge, not the colour, carries the meaning.
+- **`.vt-decision`** — the supervisor's panel is a bordered block, not page furniture:
+  converting opens a work order and rejecting closes the door on somebody's report. One
+  primary action («Convertir en OT correctiva», full width), rejection as a quiet outline
+  button leading to its own screen, because it costs a written reason.
+- **Two buttons, two acts.** The equipment record offers «Reportar falla» (primary — the
+  solicitud, open to every role) *and* «Abrir OT correctiva» (secondary — the work order,
+  supervisors and technicians). The wording carries the difference; the roles are decided
+  in the service layer, never in the template.
+- **`.vt-audit`** — the log is a list of blocks, **not a table**. Six columns of
+  action/model/id/person/timestamp at 390px is a horizontal scrollbar with data in it, and
+  the page body must never scroll sideways (only the nav does). Each entry: what happened
+  (action badge + object) on line one, who and when in muted meta, then the changed fields
+  as «campo: de → a». `.vt-audit-arrow` carries the direction — the old and new values are
+  the same kind of thing and look the same, because colouring one red and one green would
+  claim a judgement the log does not make.
+- **Audit action badges are the quietest in the product** (slate for create/update, info
+  for transition/send). Only `Eliminación` takes a semantic colour: it is the one an
+  auditor scans a page looking for.
+- **`.vt-field-inline`** — a labelled control inside a filter bar (the date range), label
+  above input, flexing like every other `.vt-filters` child.
+
+Verified live at 390px: no horizontal overflow on the report form, the queue, the request
+detail, the scan screen or the audit log; every control ≥48px; dark-mode contrast measured
+at 5.3:1 (badges) to 14.6:1 (field names).
+
 ## Component rules
 
 - **Top bar** (`.vt-topbar`): navy in both themes, sticky, brand lockup left (mark +

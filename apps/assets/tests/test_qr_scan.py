@@ -237,7 +237,15 @@ class ScanManagerTests(ScanBaseTests):
 
 
 class ScanStaffTests(ScanBaseTests):
-    """The office role reads the record. It does not act on it."""
+    """The office role reads the record — and, since brief 08, may report a
+    failure on it.
+
+    That is a deliberate change to what brief 06 decided here ("no buttons"),
+    not an oversight: brief 08 makes reporting a breakdown the one act open to
+    *every* role of the company, precisely because the person standing in front
+    of a stopped machine is often not from maintenance. Executing work is still
+    closed to them, which is what the rest of this class checks.
+    """
 
     def setUp(self):
         super().setUp()
@@ -258,12 +266,22 @@ class ScanStaffTests(ScanBaseTests):
         assert "Historial reciente" in content
         assert f"#{self.done_wo.pk}" in content
 
-    def test_gets_no_action_buttons(self):
+    def test_gets_no_execution_buttons(self):
         content = self.client.get(self.url).content.decode()
 
         assert "Ejecutar" not in content
         assert reverse("workorder_execute", args=[self.open_wo.pk]) not in content
-        assert "Reportar falla" not in content
+        # Nor the shop-floor shortcut that opens a corrective OT directly:
+        # reporting is open to everyone, deciding what to do about it is not.
+        assert reverse("workorder_corrective_create", args=[self.asset.pk]) not in content
+
+    def test_may_report_a_failure(self):
+        """Brief 08: the office role cannot open a work order, but the machine
+        it walks past every morning is still stopped."""
+        content = self.client.get(self.url).content.decode()
+
+        assert "Reportar falla" in content
+        assert reverse("maintenancerequest_create", args=[self.asset.pk]) in content
 
 
 class ScanOtherCompanyTests(ScanBaseTests):

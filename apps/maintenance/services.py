@@ -35,6 +35,7 @@ from django.utils import timezone
 from apps.accounts.models import Company
 from apps.assets.models import Asset
 from apps.checklists.models import ChecklistTemplate
+from apps.core import webhooks
 from apps.core.tenancy import current_company_id
 from apps.maintenance.models import MaintenancePlan, MeterReading
 from apps.workorders import services as workorder_services
@@ -66,19 +67,26 @@ class SchedulerResult:
     plans_evaluated: int = 0
     created: int = 0
     skipped_existing: int = 0
+    # Brief 08: how many open work orders are past their date at the end of the
+    # run. Counted, not created — the scheduler is the only thing that looks at
+    # every company every day, so it is where "está vencida" is noticed and
+    # handed to n8n.
+    overdue: int = 0
 
     def __add__(self, other: "SchedulerResult") -> "SchedulerResult":
         return SchedulerResult(
             plans_evaluated=self.plans_evaluated + other.plans_evaluated,
             created=self.created + other.created,
             skipped_existing=self.skipped_existing + other.skipped_existing,
+            overdue=self.overdue + other.overdue,
         )
 
     def as_line(self) -> str:
         return (
             f"plans evaluated: {self.plans_evaluated} · "
             f"created: {self.created} · "
-            f"skipped-existing: {self.skipped_existing}"
+            f"skipped-existing: {self.skipped_existing} · "
+            f"overdue: {self.overdue}"
         )
 
 
@@ -243,6 +251,39 @@ def _generate_scoped(*, today: date, horizon_days: int) -> SchedulerResult:
     return result
 
 
+def _overdue_work_order_ids(*, today: date) -> list[int]:
+    """Open work orders whose date has passed, for the company in context.
+
+    Through the *scoped* manager: this only ever runs inside
+    `generate_for_company`, which has just set the tenant contextvar, so one
+    company's digest can never carry another's ids.
+    """
+    return list(
+        WorkOrder.objects.filter(due_date__lt=today, status__in=WorkOrder.OPEN_STATUSES)
+        .order_by("due_date", "pk")
+        .values_list("pk", flat=True)
+    )
+
+
+def _emit_overdue_digest(company: Company, overdue_ids: list[int]) -> None:
+    """One `ot_vencida` event per run per company — a digest, not a storm.
+
+    Forty late work orders are one problem to a supervisor, not forty
+    notifications, and n8n's job here is to send that one message. The payload
+    carries ids and a count: who to tell, and how to word it, are decisions
+    n8n makes with its own token (Phase 2).
+    """
+    if not overdue_ids:
+        return
+    webhooks.emit(
+        webhooks.EVENT_WORK_ORDER_OVERDUE,
+        company_id=company.pk,
+        object_type="empresa",
+        object_id=company.pk,
+        data={"total": len(overdue_ids), "ordenes": overdue_ids},
+    )
+
+
 def generate_for_company(
     company: Company, *, today: date | None = None, horizon_days: int = 0
 ) -> SchedulerResult:
@@ -256,7 +297,11 @@ def generate_for_company(
     today = today or timezone.localdate()
     token = current_company_id.set(company.pk)
     try:
-        return _generate_scoped(today=today, horizon_days=horizon_days)
+        result = _generate_scoped(today=today, horizon_days=horizon_days)
+        overdue_ids = _overdue_work_order_ids(today=today)
+        result.overdue = len(overdue_ids)
+        _emit_overdue_digest(company, overdue_ids)
+        return result
     finally:
         current_company_id.reset(token)
 

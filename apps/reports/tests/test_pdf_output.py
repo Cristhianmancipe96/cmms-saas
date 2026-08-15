@@ -9,6 +9,7 @@ an environment that is supposed to have it.
 
 import io
 import os
+import warnings
 
 import pytest
 from django.core.files.base import ContentFile
@@ -130,3 +131,30 @@ class WorkOrderReportPdfTests(TestCase):
         assert any(list(page.images) for page in reader.pages), (
             "el registro fotográfico no llegó al PDF"
         )
+
+
+@requires_engine
+class UrlFetcherDeprecationTests(TestCase):
+    """Brief 08 carry-over (07-P1).
+
+    The brief-07 fetcher returned a dict, which WeasyPrint 69 still accepts —
+    while warning that it goes away in the next version. A DeprecationWarning
+    inside a PDF pipeline is a countdown, and the only place it can be observed
+    is a real render, so that is what this test does: render, and fail if
+    anything at all deprecates on the way through.
+    """
+
+    def test_a_real_render_emits_no_deprecation_warnings(self):
+        asset = AssetFactory(company=CompanyFactory())
+        document = documents.build_asset_record(asset)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            document.render_pdf()
+
+        offenders = [
+            str(entry.message)
+            for entry in caught
+            if issubclass(entry.category, DeprecationWarning)
+        ]
+        assert not offenders, offenders

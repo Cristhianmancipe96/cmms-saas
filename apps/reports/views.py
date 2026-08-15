@@ -17,6 +17,8 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.assets.models import Asset
+from apps.audit import services as audit
+from apps.audit.models import AuditLog
 from apps.core.rbac import deny, role_required
 from apps.reports import documents, emails, pdf
 from apps.reports.forms import RecipientsForm
@@ -151,8 +153,9 @@ def _handle_send(
         messages.error(request, str(error))
         return False
 
+    addresses = [user.email for user in recipients]
     deliveries = deliver_and_log(
-        recipients=[user.email for user in recipients],
+        recipients=addresses,
         subject=subject,
         body=body,
         attachment=(document.filename, content, PDF_CONTENT_TYPE),
@@ -161,6 +164,29 @@ def _handle_send(
         sent_by=request.user,
         asset=asset,
         work_order=work_order,
+    )
+    # Brief 08: a document leaving the company is one of the things an auditor
+    # asks about, so it leaves a row like every other consequential action. The
+    # row is attached to the object the document is *about* — that is what
+    # somebody reading the equipment's history is looking for.
+    #
+    # The addresses are recorded deliberately: "¿a quién se le mandó la hoja de
+    # vida?" is the question, and the answer already lives one table over in
+    # NotificationLog, under the same tenant scoping and the same admin-only
+    # screens. What never enters an audit row is a credential — that rule is
+    # enforced by apps/audit/services.py, not by this call site.
+    audit.record(
+        action=AuditLog.Action.SEND,
+        instance=work_order or asset,
+        user=request.user,
+        company=company,
+        changes=audit.note(
+            documento=kind,
+            destinatarios=addresses,
+            enviados=sum(1 for delivery in deliveries if delivery.ok),
+            fallidos=sum(1 for delivery in deliveries if not delivery.ok),
+        ),
+        request=request,
     )
     _report_outcome(request, deliveries)
     return True

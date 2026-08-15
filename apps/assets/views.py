@@ -19,9 +19,12 @@ from apps.assets.forms import (
     parse_specs_from_post,
 )
 from apps.assets.models import Asset, AssetCategory, AssetDocument, AssetHasDocumentsError
+from apps.audit import services as audit
+from apps.audit.models import AuditLog
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
 from apps.maintenance import services as maintenance_services
 from apps.maintenance import views as maintenance_views
+from apps.requests_ import services as request_services
 from apps.workorders import services as workorder_services
 from apps.workorders.models import WorkOrder
 
@@ -29,6 +32,28 @@ ALL_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN, User.R
 MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
 
 RECENT_WORK_ORDERS = 5
+
+# What the audit log watches on an equipment record (brief 08): the fields an
+# auditor would ask about — identity, where it is, what state it is in — and
+# not the housekeeping timestamps. `main_photo` is a file field and is skipped
+# by `audit.snapshot` itself: the log says a photo changed, it never becomes a
+# second copy of the upload.
+AUDITED_ASSET_FIELDS = (
+    "code",
+    "name",
+    "site",
+    "category",
+    "brand",
+    "model",
+    "serial_number",
+    "purchase_date",
+    "warranty_until",
+    "criticality",
+    "status",
+    "location_detail",
+    "specs",
+    "baja_reason",
+)
 
 
 # --- Categories -------------------------------------------------------------
@@ -122,6 +147,11 @@ class AssetDetailView(RoleRequiredMixin, DetailView):
             WorkOrder.objects.select_related("assigned_to").filter(asset=asset)[:RECENT_WORK_ORDERS]
         )
         context["can_report_failure"] = workorder_services.may_report_failure(self.request.user)
+        # Brief 08. Wider than `can_report_failure` on purpose: opening a work
+        # order is shop-floor work, but *reporting* that a machine stopped is
+        # something the office role — and anybody else with a session — must be
+        # able to do from the phone in their hand.
+        context["can_report_request"] = request_services.may_report(self.request.user)
         return context
 
 
@@ -139,6 +169,13 @@ def asset_create(request):
             asset.created_by = request.user
             asset.specs = parse_specs_from_post(request.POST)
             asset.save()
+            audit.record(
+                action=AuditLog.Action.CREATE,
+                instance=asset,
+                user=request.user,
+                changes=audit.created(asset, AUDITED_ASSET_FIELDS),
+                request=request,
+            )
             messages.success(request, f"Equipo {asset.name} creado.")
             return redirect("asset_detail", asset.pk)
     else:
@@ -152,6 +189,10 @@ def asset_create(request):
 def asset_update(request, pk):
     company = request.user.company
     asset = get_object_or_404(Asset, pk=pk)
+    # Taken before the form is even built: `form.is_valid()` writes the posted
+    # values onto `instance`, so a snapshot read afterwards would be a
+    # photograph of the new row calling itself the old one.
+    before = audit.snapshot(asset, AUDITED_ASSET_FIELDS)
 
     if request.method == "POST":
         form = AssetForm(request.POST, request.FILES, instance=asset, company=company)
@@ -159,6 +200,15 @@ def asset_update(request, pk):
             asset = form.save(commit=False)
             asset.specs = parse_specs_from_post(request.POST)
             asset.save()
+            audit.record(
+                action=AuditLog.Action.UPDATE,
+                instance=asset,
+                user=request.user,
+                changes=audit.diff(
+                    before, audit.snapshot(asset, AUDITED_ASSET_FIELDS), instance=asset
+                ),
+                request=request,
+            )
             messages.success(request, f"Equipo {asset.name} actualizado.")
             return redirect("asset_detail", asset.pk)
     else:
@@ -176,9 +226,19 @@ def asset_baja(request, pk):
     if request.method == "POST":
         form = AssetBajaForm(request.POST)
         if form.is_valid():
+            before = audit.snapshot(asset, ("status", "baja_reason"))
             asset.status = Asset.Status.DADO_DE_BAJA
             asset.baja_reason = form.cleaned_data["reason"]
             asset.save(update_fields=["status", "baja_reason", "updated_at"])
+            audit.record(
+                action=AuditLog.Action.TRANSITION,
+                instance=asset,
+                user=request.user,
+                changes=audit.diff(
+                    before, audit.snapshot(asset, ("status", "baja_reason")), instance=asset
+                ),
+                request=request,
+            )
             messages.success(request, f"Equipo {asset.name} dado de baja.")
             return redirect("asset_detail", asset.pk)
     else:

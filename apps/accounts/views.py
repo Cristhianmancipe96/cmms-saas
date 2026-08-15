@@ -11,12 +11,19 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
 from apps.accounts.forms import SiteForm, UserInviteForm
 from apps.accounts.models import Site, Subscription, User
+from apps.audit import services as audit
+from apps.audit.models import AuditLog
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
 from apps.reports import emails, mailer
 from apps.reports.models import NotificationLog
 
 ALL_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN, User.Role.STAFF)
 MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
+
+# What the audit log keeps about an account. Note what is absent and cannot be
+# added by accident: `password` (and anything else whose name looks like a
+# credential) is redacted by apps/audit/services.py itself, on the way in.
+AUDITED_USER_FIELDS = ("username", "email", "role", "is_active")
 
 
 class CompanyAuthLoginView(LoginView):
@@ -121,6 +128,17 @@ def user_invite(request):
                 user.company = company
                 user.set_password(temp_password)
                 user.save()
+                # Inside the atomic block on purpose: if the invitation mail
+                # fails, the block rolls back, the account never existed — and
+                # neither should a row claiming somebody created it.
+                audit.record(
+                    action=AuditLog.Action.CREATE,
+                    instance=user,
+                    user=request.user,
+                    company=company,
+                    changes=audit.created(user, AUDITED_USER_FIELDS),
+                    request=request,
+                )
                 # Read out now: if the send fails the row below is rolled back
                 # and `user` becomes a stale object with a pk that no longer
                 # exists.
@@ -176,8 +194,19 @@ def user_invite(request):
 def user_deactivate(request, pk):
     target = get_object_or_404(User, pk=pk, company=request.user.company)
     if request.method == "POST":
+        before = audit.snapshot(target, AUDITED_USER_FIELDS)
         target.is_active = False
         target.save(update_fields=["is_active"])
+        audit.record(
+            action=AuditLog.Action.UPDATE,
+            instance=target,
+            user=request.user,
+            company=target.company,
+            changes=audit.diff(
+                before, audit.snapshot(target, AUDITED_USER_FIELDS), instance=target
+            ),
+            request=request,
+        )
         messages.success(request, f"Usuario {target.username} desactivado.")
         return redirect("user_list")
     return render(request, "accounts/user_deactivate_confirm.html", {"target": target})

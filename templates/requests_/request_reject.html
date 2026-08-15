@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Rechazar solicitud #{{ solicitud.pk }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Rechazar solicitud #{{ solicitud.pk }}</h1>
+        <p>{{ solicitud.asset.code }} — {{ solicitud.asset.name }}</p>
+    </hgroup>
+
+    <p class="vt-alert vt-alert--warning">
+        El motivo lo lee quien reportó la falla, y queda en el registro de
+        auditoría junto con tu nombre y la fecha. Explica por qué no se abre
+        una OT: es lo que evita que la misma falla se reporte tres veces.
+    </p>
+
+    <blockquote class="vt-report-text">{{ solicitud.description|linebreaksbr }}</blockquote>
+
+    <form method="post">
+        {% csrf_token %}
+        {% include "maintenance/_field.html" with field=form.note %}
+        <div class="vt-actions">
+            <button type="submit">Rechazar la solicitud</button>
+            <a href="{% url 'maintenancerequest_detail' solicitud.pk %}" role="button" class="secondary outline">Volver</a>
+        </div>
+    </form>
+{% endblock %}

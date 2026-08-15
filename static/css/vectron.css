@@ -435,6 +435,44 @@ a.vt-row--vencido:is(:hover, :focus-visible) { background: color-mix(in srgb, va
    must not compete for attention with the live ones. */
 .vt-row--inactivo .vt-row-main strong { color: var(--vt-muted); font-weight: 500; }
 
+/* A failure report nobody has decided yet (brief 08). Same 6% whole-row tint
+   as an overdue OT, in amber instead of danger: it is a queue waiting for a
+   supervisor, not an emergency. */
+.vt-row--pendiente { background: color-mix(in srgb, var(--vt-warning-700) 6%, transparent); }
+a.vt-row--pendiente:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--vt-warning-700) 12%, transparent); }
+:where([data-theme="dark"]) .vt-row--pendiente { background: color-mix(in srgb, var(--vt-warning-700) 16%, transparent); }
+:where([data-theme="dark"]) a.vt-row--pendiente:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--vt-warning-700) 26%, transparent); }
+
+/* --------------------------------------------------------------------------
+   5e. Failure-request badges (brief 08). No new colours: a request waiting for
+   a decision is amber (the same "esto necesita a alguien pronto" the plan
+   badges use), one that became work is success, one that was refused takes the
+   quiet strikethrough treatment already used for cancelada/inactiva. Amber and
+   NOT the brand orange, which means «en proceso» everywhere else.
+   -------------------------------------------------------------------------- */
+.vt-badge--nueva       { background: var(--vt-warning-100); color: var(--vt-warning-700); border-color: color-mix(in srgb, var(--vt-warning-700) 30%, transparent); }
+.vt-badge--convertida  { background: var(--vt-success-100); color: var(--vt-success-700); border-color: color-mix(in srgb, var(--vt-success-700) 25%, transparent); }
+.vt-badge--rechazada   { background: transparent;           color: var(--vt-slate-500);   border-color: var(--vt-slate-300); text-decoration: line-through; }
+
+:where([data-theme="dark"]) .vt-badge--nueva      { background: color-mix(in srgb, var(--vt-warning-700) 35%, var(--vt-navy-900)); color: var(--vt-warning-300); border-color: color-mix(in srgb, var(--vt-warning-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--convertida { background: color-mix(in srgb, var(--vt-success-700) 32%, var(--vt-navy-900)); color: var(--vt-success-300); border-color: color-mix(in srgb, var(--vt-success-300) 28%, transparent); }
+:where([data-theme="dark"]) .vt-badge--rechazada  { color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+
+/* Audit actions (brief 08). The log is read in bulk, so these are the quietest
+   badges in the product: structure, not alarm. Only «Eliminación» carries a
+   semantic colour, because it is the one an auditor scans a page looking for. */
+.vt-badge--accion-create     { background: var(--vt-slate-100); color: var(--vt-navy-700); border-color: var(--vt-slate-300); }
+.vt-badge--accion-update     { background: var(--vt-slate-100); color: var(--vt-navy-700); border-color: var(--vt-slate-300); }
+.vt-badge--accion-transition { background: var(--vt-info-100);  color: var(--vt-info-700); border-color: color-mix(in srgb, var(--vt-info-700) 25%, transparent); }
+.vt-badge--accion-send       { background: var(--vt-info-100);  color: var(--vt-info-700); border-color: color-mix(in srgb, var(--vt-info-700) 25%, transparent); }
+.vt-badge--accion-delete     { background: var(--vt-danger-100); color: var(--vt-danger-700); border-color: color-mix(in srgb, var(--vt-danger-700) 30%, transparent); }
+
+:where([data-theme="dark"]) .vt-badge--accion-create,
+:where([data-theme="dark"]) .vt-badge--accion-update     { background: var(--vt-navy-700); color: var(--vt-muted-on-dark); border-color: var(--vt-navy-600); }
+:where([data-theme="dark"]) .vt-badge--accion-transition,
+:where([data-theme="dark"]) .vt-badge--accion-send       { background: color-mix(in srgb, var(--vt-info-700) 30%, var(--vt-navy-900)); color: var(--vt-info-300); border-color: color-mix(in srgb, var(--vt-info-300) 30%, transparent); }
+:where([data-theme="dark"]) .vt-badge--accion-delete     { background: color-mix(in srgb, var(--vt-danger-700) 35%, var(--vt-navy-900)); color: var(--vt-danger-300); border-color: color-mix(in srgb, var(--vt-danger-300) 30%, transparent); }
+
 /* --------------------------------------------------------------------------
    6. Django messages → alerts (full border + tint; never a side stripe)
    -------------------------------------------------------------------------- */
@@ -989,6 +1027,104 @@ a.vt-row:is(:hover, :focus-visible) {
   main.container { max-width: none; margin: 0; padding: 0; }
   .vt-label { break-inside: avoid; }
 }
+
+/* --------------------------------------------------------------------------
+   8i. Failure reports (brief 08)
+   -------------------------------------------------------------------------- */
+
+/* Scene, same as the execution screen and for the same reason: a phone, one
+   hand, bright light, standing in front of a machine that just stopped. The
+   difference is that the person filling this in may never have opened the app
+   before — so the form is two fields and one full-width button, and every
+   control is the plant-floor tap size. */
+.vt-report-lead { color: var(--vt-muted); font-size: 0.9375rem; }
+
+.vt-report textarea {
+  min-height: 7.5rem;
+  /* 1rem, not Pico's smaller default: below 16px iOS zooms the whole page on
+     focus, and a viewport that jumps while you are typing with gloves on is
+     how a report gets abandoned half-written. */
+  font-size: 1rem;
+  line-height: 1.4;
+}
+.vt-report input[type="file"] { min-height: var(--vt-tap-lg); font-size: 0.9375rem; }
+
+/* The reported text, read back. `pre-wrap` because the line breaks somebody
+   typed are part of what they said. */
+.vt-report-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+blockquote.vt-report-text { font-size: 0.9375rem; color: var(--vt-muted); }
+
+.vt-report-photo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--vt-radius);
+  border: 1px solid var(--pico-card-border-color);
+}
+
+/* The supervisor's decision panel. A bordered block, because "convertir" and
+   "rechazar" are consequences and should not read as page furniture. */
+.vt-decision {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-sectioning-background-color);
+}
+.vt-decision .vt-group-title { margin-top: 0; }
+
+/* A one-glyph marker inside a row (a report carries a photo). Not a badge: it
+   states a fact about the row, it does not name a state. */
+.vt-chip { font-size: 0.875rem; line-height: 1; }
+
+/* --------------------------------------------------------------------------
+   8j. The audit log (brief 08)
+   -------------------------------------------------------------------------- */
+
+/* Not a table. At 390px a six-column table of action/model/id/person/timestamp
+   is a horizontal scrollbar with data inside it, and the page body must never
+   scroll sideways (only the nav does). One block per entry reads on a phone
+   and stays dense on a desktop. */
+.vt-audit { list-style: none; margin: 0; padding: 0; }
+.vt-audit > li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+.vt-audit > li::marker { content: none; }
+
+.vt-audit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+}
+.vt-audit-head strong { min-width: 0; overflow-wrap: anywhere; }
+.vt-audit-meta { margin: 0; color: var(--vt-muted); font-size: 0.8125rem; overflow-wrap: anywhere; }
+
+.vt-audit-changes { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.vt-audit-changes > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+  font-size: 0.8125rem;
+}
+.vt-audit-changes > li::marker { content: none; }
+.vt-audit-field { font-weight: 700; color: var(--vt-ink); }
+.vt-audit-field::after { content: ":"; }
+/* The old value and the new one are the same kind of thing, so they look the
+   same: the arrow between them carries the direction. Colouring "de" red and
+   "a" green would claim a judgement the log does not make. */
+.vt-audit-value { color: var(--vt-muted); overflow-wrap: anywhere; }
+.vt-audit-arrow { color: var(--vt-muted); }
+
+/* A labelled control inside a filter bar (the date range). The label sits
+   above its input and the pair flexes like every other filter control. */
+.vt-field-inline { display: flex; flex-direction: column; gap: 0.15rem; flex: 1 1 8rem; margin: 0; font-size: 0.75rem; color: var(--vt-muted); }
+.vt-field-inline input { margin: 0; min-height: var(--vt-tap); }
 
 /* --------------------------------------------------------------------------
    9. Details refinements

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% comment %}
+The report, and what happened to it.
+
+The same page for the person who filed it and for the supervisor who decides:
+the reporter's question ("¿qué pasó con esto?") is answered by the state block
+at the top, and the decision panel simply is not rendered for them. `can_decide`
+comes from the service layer, so the buttons and the permission agree by
+construction.
+
+«Convertir» is a POST with one button. Pressing it twice lands on the same OT —
+the request row is locked and `UNIQUE(source_request_id)` is the backstop
+(apps/requests_/services.py). The screen does not need to defend against the
+double tap, and does not pretend to.
+{% endcomment %}
+
+{% block title %}Solicitud #{{ solicitud.pk }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Solicitud #{{ solicitud.pk }}</h1>
+        <p>
+            <a href="{% url 'asset_detail' solicitud.asset.pk %}">{{ solicitud.asset.code }} — {{ solicitud.asset.name }}</a>
+        </p>
+    </hgroup>
+
+    <p class="vt-scan-badges">
+        <span class="vt-badge vt-badge--{{ solicitud.badge_modifier }}">{{ solicitud.get_status_display }}</span>
+    </p>
+
+    {% if solicitud.status == "convertida" and work_order %}
+        <p class="vt-alert vt-alert--success" role="status">
+            Convertida en la <a href="{% url 'workorder_detail' work_order.pk %}">OT correctiva #{{ work_order.pk }}</a>
+            por {{ solicitud.reviewed_by|default:"—" }} el {{ solicitud.reviewed_at|date:"d/m/Y H:i" }}.
+        </p>
+    {% elif solicitud.status == "rechazada" %}
+        <p class="vt-alert vt-alert--warning" role="status">
+            Rechazada por {{ solicitud.reviewed_by|default:"—" }} el {{ solicitud.reviewed_at|date:"d/m/Y H:i" }}.
+            Motivo: {{ solicitud.review_note }}
+        </p>
+    {% endif %}
+
+    <section>
+        <h2 class="vt-group-title">La falla</h2>
+        <p class="vt-report-text">{{ solicitud.description|linebreaksbr }}</p>
+        {% if solicitud.photo %}
+            <p>
+                <a href="{% url 'maintenancerequest_photo' solicitud.pk %}">
+                    <img class="vt-report-photo" src="{% url 'maintenancerequest_photo' solicitud.pk %}" alt="Foto de la falla reportada">
+                </a>
+            </p>
+        {% endif %}
+        <p class="vt-meta">
+            Reportada por {{ solicitud.reported_by }} el {{ solicitud.created_at|date:"d/m/Y H:i" }}.
+        </p>
+    </section>
+
+    {% if can_decide %}
+        <section class="vt-decision">
+            <h2 class="vt-group-title">Decisión</h2>
+            <form method="post" action="{% url 'maintenancerequest_convert' solicitud.pk %}">
+                {% csrf_token %}
+                {% include "maintenance/_field.html" with field=convert_form.priority %}
+                <button type="submit" class="vt-submit-lg">Convertir en OT correctiva</button>
+            </form>
+            <div class="vt-actions">
+                <a href="{% url 'maintenancerequest_reject' solicitud.pk %}" role="button" class="secondary outline">Rechazar</a>
+            </div>
+        </section>
+    {% endif %}
+
+    <p><a href="{% url 'maintenancerequest_list' %}">&larr; Volver a solicitudes</a></p>
+{% endblock %}

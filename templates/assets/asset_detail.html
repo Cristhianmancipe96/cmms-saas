@@ -141,8 +141,18 @@
             {% endfor %}
         </ul>
         <div class="vt-actions">
+            {% comment %}
+            Two different acts, and the wording says which is which. «Reportar
+            falla» is the brief-08 solicitud: anybody in the company may file
+            it and a supervisor decides. Opening a corrective OT directly is
+            shop-floor work with a narrower audience, so it reads as what it
+            is — the work order, not the report.
+            {% endcomment %}
+            {% if can_report_request %}
+                <a href="{% url 'maintenancerequest_create' asset.pk %}" role="button">Reportar falla</a>
+            {% endif %}
             {% if can_report_failure %}
-                <a href="{% url 'workorder_corrective_create' asset.pk %}" role="button">Reportar falla</a>
+                <a href="{% url 'workorder_corrective_create' asset.pk %}" role="button" class="secondary">Abrir OT correctiva</a>
             {% endif %}
             {% if work_orders %}
                 <a href="{% url 'workorder_list' %}?equipo={{ asset.pk }}" role="button" class="secondary outline">Ver todas</a>

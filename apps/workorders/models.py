@@ -149,6 +149,24 @@ class WorkOrder(CompanyScopedModel):
         blank=True,
         help_text="Versión exacta de la plantilla que se copió al crear la OT.",
     )
+    # Brief 08: the failure report this work order came out of, when it came
+    # out of one. A OneToOneField rather than a plain FK, and living here
+    # rather than on the request, for one reason: it makes
+    # `UNIQUE(source_request_id)` a Postgres index, so "one solicitud can never
+    # produce two OTs" is enforced by the database on the second click, not by
+    # the conversion code remembering to check. Same structural move as
+    # `UNIQUE(plan, due_date)` above (CLAUDE.md rule 5).
+    #
+    # PROTECT: a converted request is the origin of audit evidence and must
+    # outlive any wish to tidy the queue.
+    source_request = models.OneToOneField(
+        "requests.MaintenanceRequest",
+        on_delete=models.PROTECT,
+        related_name="work_order",
+        verbose_name="solicitud de origen",
+        null=True,
+        blank=True,
+    )
     type = models.CharField("tipo", max_length=20, choices=Type.choices, default=Type.PREVENTIVO)
     origin = models.CharField("origen", max_length=20, choices=Origin.choices, default=Origin.PLAN)
     status = models.CharField(
