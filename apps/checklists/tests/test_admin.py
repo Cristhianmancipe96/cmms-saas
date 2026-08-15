@@ -1,10 +1,9 @@
-from unittest.mock import patch
-
 from django.test import TestCase
 
 from apps.accounts.tests.factories import CompanyFactory, UserFactory
 from apps.checklists.models import ChecklistTemplate, ChecklistTemplateItem
 from apps.checklists.tests.factories import ChecklistTemplateFactory, ChecklistTemplateItemFactory
+from apps.workorders.tests.factories import lock_template
 
 
 def _staffer_without_platform_admin(company):
@@ -53,10 +52,8 @@ class ChecklistTemplateItemInlineIsReadOnlyTests(TestCase):
         # text instead, so that editable input must not appear at all.
         assert 'name="checklisttemplateitem_set-0-text"' not in content
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_posting_an_edited_item_via_the_inline_formset_does_not_mutate_a_locked_item(
-        self, mock_locked
-    ):
+    def test_posting_an_edited_item_via_the_inline_formset_does_not_mutate_a_locked_item(self):
+        lock_template(self.template)
         management_form = {
             "checklisttemplateitem_set-TOTAL_FORMS": "1",
             "checklisttemplateitem_set-INITIAL_FORMS": "1",

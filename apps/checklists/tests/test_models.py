@@ -3,24 +3,55 @@ from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
 from apps.accounts.tests.factories import CompanyFactory
-from apps.checklists.models import ChecklistTemplateItem
+from apps.checklists.models import ChecklistTemplate, ChecklistTemplateItem
 from apps.checklists.tests.factories import (
     ChecklistTemplateFactory,
     ChecklistTemplateItemFactory,
     create_flowpac_inspeccion_semanal,
 )
+from apps.core.tenancy import current_company_id
+from apps.workorders.tests.factories import lock_template
 
 
 class ChecklistTemplateIsLockedTests(TestCase):
-    """`is_locked` is a single, well-named hook — always False today (no
-    work-order model exists yet), structured so brief 05 can replace its
-    body with a real `self.work_orders.exists()` check in this one place.
+    """Brief 05 made the lock real: a template is locked once a work order
+    has snapshotted it. These tests use actual work orders — a mocked
+    `is_locked` proves nothing about the foreign key the real one reads.
     """
 
-    def test_is_locked_is_false_by_default(self):
+    def test_is_locked_is_false_without_work_orders(self):
         template = ChecklistTemplateFactory()
 
         assert template.is_locked() is False
+
+    def test_is_locked_is_true_once_a_work_order_references_it(self):
+        template = ChecklistTemplateFactory()
+        lock_template(template)
+
+        assert template.is_locked() is True
+
+    def test_a_work_order_on_another_template_does_not_lock_this_one(self):
+        template = ChecklistTemplateFactory()
+        other = ChecklistTemplateFactory(company=template.company)
+        lock_template(other)
+
+        assert template.is_locked() is False
+
+    def test_the_lock_holds_with_no_tenant_context_set(self):
+        """The failure this guards against is a silent no-op, not an error.
+
+        `self.work_orders.exists()` would go through WorkOrder's
+        CompanyScopedManager, which returns nothing when no request has set
+        the tenant contextvar — a management command or a shell session would
+        see every template as unlocked and happily mutate audit evidence in
+        place. This TestCase never sets the contextvar, so it is exactly that
+        situation.
+        """
+        template = ChecklistTemplateFactory()
+        lock_template(template)
+
+        assert current_company_id.get() is None
+        assert template.is_locked() is True
 
 
 class FlowpacSeedHelperTests(TestCase):
@@ -76,3 +107,39 @@ class ChecklistTemplateItemOrderUniquenessTests(TestCase):
         ChecklistTemplateItemFactory(template=template_b, order=1)
 
         assert ChecklistTemplateItem.objects.unscoped().filter(order=1).count() == 2
+
+
+class ChecklistTemplateSingleForkTests(TestCase):
+    """Review finding 03-1: one fork per parent, enforced by the database.
+
+    Two supervisors editing the same locked template at the same time used to
+    be able to create two rival "version 2" siblings, each carrying half the
+    edits, with nothing to say which one the next work order should snapshot.
+    `services.get_editable_version` now serializes on the parent row; this
+    constraint is the structural backstop, in the same spirit as
+    UNIQUE(plan, due_date) behind the scheduler's get_or_create.
+    """
+
+    def test_a_second_fork_of_the_same_parent_is_rejected(self):
+        parent = ChecklistTemplateFactory(version=1)
+        ChecklistTemplateFactory(company=parent.company, version=2, parent=parent)
+
+        with pytest.raises(IntegrityError), transaction.atomic():
+            ChecklistTemplateFactory(company=parent.company, version=2, parent=parent)
+
+    def test_many_root_templates_without_a_parent_are_fine(self):
+        """The constraint is partial: NULL parents must stay unconstrained, or
+        the second template a company ever creates would fail."""
+        company = CompanyFactory()
+        ChecklistTemplateFactory(company=company, parent=None)
+        ChecklistTemplateFactory(company=company, parent=None)
+
+        assert ChecklistTemplate.objects.unscoped().filter(parent__isnull=True).count() == 2
+
+    def test_a_chain_of_versions_is_still_allowed(self):
+        """v1 -> v2 -> v3 is one fork per parent, not two forks of v1."""
+        v1 = ChecklistTemplateFactory(version=1)
+        v2 = ChecklistTemplateFactory(company=v1.company, version=2, parent=v1)
+        v3 = ChecklistTemplateFactory(company=v1.company, version=3, parent=v2)
+
+        assert v3.parent_id == v2.pk

@@ -29,24 +29,45 @@ class ChecklistTemplate(CompanyScopedModel):
 
     class Meta(CompanyScopedModel.Meta):
         ordering = ["name", "-version"]
+        constraints = [
+            # One fork per parent, enforced by the database. `services.
+            # get_editable_version` pairs this with `select_for_update` on the
+            # parent and a "does a fork already exist?" read, the same
+            # structural shape as the scheduler's UNIQUE(plan, due_date) +
+            # get_or_create: two concurrent edits of the same locked template
+            # converge on ONE version n+1 instead of racing into two siblings
+            # that both claim to be it. Partial (parent IS NOT NULL) because
+            # every root template — and every `duplicate_template` copy — has
+            # a NULL parent and must stay unconstrained.
+            models.UniqueConstraint(
+                fields=["parent"],
+                condition=models.Q(parent__isnull=False),
+                name="checklisttemplate_unique_parent",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.name} v{self.version}"
 
     def is_locked(self) -> bool:
         """True once a work order references this template version — its
-        items become audit evidence the moment that happens (CLAUDE.md rule
+        items became audit evidence the moment that happened (CLAUDE.md rule
         4) and must never be mutated in place again.
 
-        Work orders land in brief 05, so nothing references any template
-        yet: today this is unconditionally False. This is deliberately a
-        single, well-named method (not inlined at each call site) so brief
-        05 only has to replace this one body — e.g. with
-        `self.work_orders.exists()` — for the whole app to start honoring
-        real locks. Until then, tests force the locked branch with
-        `unittest.mock.patch.object(ChecklistTemplate, "is_locked", ...)`.
+        NOT `self.work_orders.exists()`: that reverse relation is built on
+        WorkOrder's own CompanyScopedManager, which silently returns nothing
+        outside a request context (apps/core/tenancy.py). A lock that
+        evaporates in a management command or a shell session is worse than
+        no lock at all — it would let an edit mutate evidence in place and
+        report success. Same reasoning as `Asset.has_documents()`.
+
+        The import is function-level to keep the app pair acyclic: work
+        orders point at checklists (the snapshot's provenance FK), not the
+        other way round.
         """
-        return False
+        from apps.workorders.models import WorkOrder
+
+        return WorkOrder.objects.unscoped().filter(checklist_template_id=self.pk).exists()
 
 
 class ChecklistTemplateItem(CompanyScopedModel):

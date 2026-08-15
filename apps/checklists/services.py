@@ -70,9 +70,27 @@ def get_editable_version(template: ChecklistTemplate) -> ChecklistTemplate:
     a work order), its rows — and its items' rows — must never be mutated:
     fork version n+1 with copied items and retire the parent instead. An
     unused template edits in place: return it unchanged.
+
+    Serialized on the parent row. Two supervisors editing the same locked
+    template at the same time used to produce two "version 2" siblings, each
+    holding half the edits and neither being the version the next work order
+    would snapshot. `select_for_update` makes the second caller wait, and the
+    existing-fork read below then hands it the version the first one created,
+    so both edits land on the same row. `UniqueConstraint(parent)` is the
+    structural backstop for the same invariant, exactly as
+    `UNIQUE(plan, due_date)` backs the scheduler's `get_or_create`.
     """
-    if not template.is_locked():
+    locked_parent = (
+        ChecklistTemplate.objects.unscoped().select_for_update().filter(pk=template.pk).first()
+    )
+    if locked_parent is None or not locked_parent.is_locked():
         return template
+
+    already_forked = (
+        ChecklistTemplate.objects.unscoped().filter(parent_id=template.pk).order_by("pk").first()
+    )
+    if already_forked is not None:
+        return already_forked
 
     new_version = ChecklistTemplate.objects.create(
         company_id=template.company_id,
@@ -89,6 +107,21 @@ def get_editable_version(template: ChecklistTemplate) -> ChecklistTemplate:
     return new_version
 
 
+def _assert_item_belongs(template: ChecklistTemplate, item: ChecklistTemplateItem) -> None:
+    """Refuse to mutate an item that is not this template's.
+
+    The views already pair the two in a single `get_object_or_404(..., pk=item_pk,
+    template=template)`, so this is defense in depth — but the service is the
+    documented entry point for shell sessions, management commands and future
+    callers, and "trust the caller to have paired them" is exactly the kind of
+    assumption that turns into a cross-tenant write. Company is checked too:
+    matching a foreign item by primary key must fail even if some future caller
+    resolves items with `.unscoped()`.
+    """
+    if item.company_id != template.company_id or item.template_id != template.pk:
+        raise ValidationError("El ítem no pertenece a esta plantilla.")
+
+
 def _corresponding_item(
     target_template: ChecklistTemplate, item: ChecklistTemplateItem
 ) -> ChecklistTemplateItem:
@@ -96,8 +129,16 @@ def _corresponding_item(
     Its copy on `target_template` was created with the same `order` — the
     only stable correlation key carried across the copy.
     """
+    if item.company_id != target_template.company_id:
+        raise ValidationError("El ítem no pertenece a esta plantilla.")
     if item.template_id == target_template.pk:
         return item
+    if item.template_id != target_template.parent_id:
+        # The only legitimate way to be here is "the item belongs to the
+        # template we just forked". Anything else means the caller paired an
+        # item with a template it never belonged to, and translating that by
+        # `order` would silently rewrite an unrelated row.
+        raise ValidationError("El ítem no pertenece a esta plantilla.")
     return ChecklistTemplateItem.objects.unscoped().get(template=target_template, order=item.order)
 
 
@@ -150,6 +191,7 @@ def update_item(
     if item_type == ChecklistTemplateItem.ItemType.NUMERIC:
         validate_numeric_item(unit=unit, min_value=min_value, max_value=max_value)
 
+    _assert_item_belongs(template, item)
     target = get_editable_version(template)
     target_item = _corresponding_item(target, item)
     target_item.text = text
@@ -169,6 +211,7 @@ def move_item(
     """Acceptance criterion 3. `direction` is -1 (up/earlier) or +1
     (down/later). A no-op past either end of the list.
     """
+    _assert_item_belongs(template, item)
     target = get_editable_version(template)
     target_item = _corresponding_item(target, item)
     items = list(_items_of(target))

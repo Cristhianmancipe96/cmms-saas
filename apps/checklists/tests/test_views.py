@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.test import TestCase
 from django.urls import reverse
 
@@ -7,6 +5,7 @@ from apps.accounts.tests.factories import AdminUserFactory, CompanyFactory
 from apps.assets.tests.factories import AssetCategoryFactory
 from apps.checklists.models import ChecklistTemplate, ChecklistTemplateItem
 from apps.checklists.tests.factories import ChecklistTemplateFactory, ChecklistTemplateItemFactory
+from apps.workorders.tests.factories import lock_template
 
 
 class ChecklistTemplateCreateViewTests(TestCase):
@@ -126,11 +125,11 @@ class ChecklistItemBuilderViewTests(TestCase):
 
         assert response.status_code == 405
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_editing_a_locked_template_redirects_to_the_new_version_and_parent_item_is_untouched(
-        self, mock_locked
+    def test_editing_a_locked_template_redirects_to_the_new_version_and_parent_is_untouched(
+        self,
     ):
         item = ChecklistTemplateItemFactory(template=self.template, order=1, text="Original")
+        lock_template(self.template)
 
         response = self.client.post(
             reverse("checklistitem_update", args=[self.template.pk, item.pk]),

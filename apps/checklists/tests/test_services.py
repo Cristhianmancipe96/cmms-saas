@@ -1,5 +1,4 @@
 from decimal import Decimal
-from unittest.mock import patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -8,6 +7,7 @@ from django.test import TestCase
 from apps.checklists import services
 from apps.checklists.models import ChecklistTemplate, ChecklistTemplateItem
 from apps.checklists.tests.factories import ChecklistTemplateFactory, ChecklistTemplateItemFactory
+from apps.workorders.tests.factories import lock_template
 
 
 def _field_values(item: ChecklistTemplateItem) -> dict:
@@ -33,12 +33,14 @@ class GetEditableVersionLockedTests(TestCase):
     version n+1 with copied items; the parent — and its items — stay
     byte-identical in the database.
 
-    `is_locked` is forced True via mock.patch.object since no work-order
-    model exists yet to create a real lock (brief 05).
+    The lock is real: `lock_template` files an actual work order against
+    this version, which is exactly what `ChecklistTemplate.is_locked()`
+    reads. (Brief 03 had to mock it — there was no work-order model yet.)
     """
 
     def setUp(self):
         self.template = ChecklistTemplateFactory(version=1, is_active=True)
+        lock_template(self.template)
         self.item_a = ChecklistTemplateItemFactory(
             template=self.template,
             order=1,
@@ -63,8 +65,7 @@ class GetEditableVersionLockedTests(TestCase):
             ChecklistTemplateItem.objects.unscoped().get(pk=self.item_b.pk)
         )
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_forks_new_version_with_copied_items(self, mock_locked):
+    def test_forks_new_version_with_copied_items(self):
         target = services.get_editable_version(self.template)
 
         assert target.pk != self.template.pk
@@ -72,8 +73,7 @@ class GetEditableVersionLockedTests(TestCase):
         assert target.parent_id == self.template.pk
         assert target.is_active is True
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_parent_is_deactivated_and_untouched(self, mock_locked):
+    def test_parent_is_deactivated_and_untouched(self):
         services.get_editable_version(self.template)
 
         parent = ChecklistTemplate.objects.unscoped().get(pk=self.template.pk)
@@ -81,8 +81,7 @@ class GetEditableVersionLockedTests(TestCase):
         assert parent.name == self.template.name
         assert parent.version == 1  # the parent's own version number never changes
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_parent_items_are_byte_identical_after_editing_the_fork(self, mock_locked):
+    def test_parent_items_are_byte_identical_after_editing_the_fork(self):
         target = services.get_editable_version(self.template)
         # .unscoped(): this TestCase never sets the tenant contextvar (only
         # CurrentCompanyMiddleware does, on a real request) — `target.items`
@@ -104,8 +103,7 @@ class GetEditableVersionLockedTests(TestCase):
         assert _field_values(reloaded_a) == self.original_a
         assert _field_values(reloaded_b) == self.original_b
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_new_version_items_are_separate_rows_with_same_content(self, mock_locked):
+    def test_new_version_items_are_separate_rows_with_same_content(self):
         target = services.get_editable_version(self.template)
 
         new_items = list(
@@ -118,12 +116,12 @@ class GetEditableVersionLockedTests(TestCase):
         assert new_items[1].unit == "bar"
         assert new_items[1].min_value == Decimal("5.00")
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_forking_a_fork_chains_off_it_and_never_touches_the_grandparent(self, mock_locked):
-        # is_locked is mocked at the class level, so the freshly forked
-        # `target` also reports locked — a second fork must chain v2 -> v3,
-        # not v1 -> v3, and must leave v1 exactly as the first fork left it.
+    def test_forking_a_fork_chains_off_it_and_never_touches_the_grandparent(self):
         target = services.get_editable_version(self.template)
+        # v2 only locks once a work order snapshots *it*. Then a second fork
+        # must chain v2 -> v3, not v1 -> v3, and must leave v1 exactly as the
+        # first fork left it.
+        lock_template(target)
         second_target = services.get_editable_version(target)
 
         assert second_target.pk != target.pk
@@ -157,12 +155,10 @@ class AddItemTests(TestCase):
 
         assert item.order == 3
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_add_item_on_locked_template_forks_and_leaves_parent_item_count_unchanged(
-        self, mock_locked
-    ):
+    def test_add_item_on_locked_template_forks_and_leaves_parent_item_count_unchanged(self):
         template = ChecklistTemplateFactory(version=1)
         ChecklistTemplateItemFactory(template=template, order=1)
+        lock_template(template)
 
         target, new_item = services.add_item(
             template, text="Nuevo ítem", item_type=ChecklistTemplateItem.ItemType.CHECK
@@ -233,8 +229,9 @@ class MoveItemTests(TestCase):
         reloaded_3 = ChecklistTemplateItem.objects.unscoped().get(pk=self.item_3.pk)
         assert reloaded_3.order == 3
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_move_on_locked_template_forks_and_parent_order_is_untouched(self, mock_locked):
+    def test_move_on_locked_template_forks_and_parent_order_is_untouched(self):
+        lock_template(self.template)
+
         target = services.move_item(self.template, self.item_1, direction=1)
 
         parent_item_1 = ChecklistTemplateItem.objects.unscoped().get(pk=self.item_1.pk)
@@ -243,6 +240,102 @@ class MoveItemTests(TestCase):
             ChecklistTemplateItem.objects.unscoped().filter(template=target).order_by("order")
         )
         assert [item.text for item in target_items] == ["Dos", "Uno", "Tres"]
+
+
+class ItemBelongsToTemplateTests(TestCase):
+    """Review finding 03-2: the service must not take the caller's word for it.
+
+    `_corresponding_item` correlates a parent's item with its fork's copy by
+    `order`. Handed an item from an unrelated template, that correlation used
+    to silently resolve to whichever row happened to share the number — an
+    edit aimed at one template rewriting a different one, cross-company
+    included. The views pair the two in a single `get_object_or_404`, so this
+    is defense in depth, tested where the hole was: at the service, without
+    going through a view.
+    """
+
+    def setUp(self):
+        self.template = ChecklistTemplateFactory()
+        self.item = ChecklistTemplateItemFactory(
+            template=self.template, order=1, text="Propio"
+        )
+
+    def test_update_item_rejects_an_item_from_another_template(self):
+        other_template = ChecklistTemplateFactory(company=self.template.company)
+        foreign_item = ChecklistTemplateItemFactory(
+            template=other_template, order=1, text="Ajeno"
+        )
+
+        with pytest.raises(ValidationError):
+            services.update_item(
+                self.template,
+                foreign_item,
+                text="SECUESTRADO",
+                item_type=ChecklistTemplateItem.ItemType.CHECK,
+            )
+
+        assert (
+            ChecklistTemplateItem.objects.unscoped().get(pk=foreign_item.pk).text == "Ajeno"
+        )
+        assert ChecklistTemplateItem.objects.unscoped().get(pk=self.item.pk).text == "Propio"
+
+    def test_update_item_rejects_an_item_from_another_company(self):
+        other_company_template = ChecklistTemplateFactory()
+        foreign_item = ChecklistTemplateItemFactory(
+            template=other_company_template, order=1, text="De otra empresa"
+        )
+
+        with pytest.raises(ValidationError):
+            services.update_item(
+                self.template,
+                foreign_item,
+                text="SECUESTRADO",
+                item_type=ChecklistTemplateItem.ItemType.CHECK,
+            )
+
+        reloaded = ChecklistTemplateItem.objects.unscoped().get(pk=foreign_item.pk)
+        assert reloaded.text == "De otra empresa"
+
+    def test_move_item_rejects_an_item_from_another_template(self):
+        other_template = ChecklistTemplateFactory(company=self.template.company)
+        foreign_item = ChecklistTemplateItemFactory(template=other_template, order=1)
+        ChecklistTemplateItemFactory(template=other_template, order=2)
+
+        with pytest.raises(ValidationError):
+            services.move_item(self.template, foreign_item, direction=1)
+
+        assert ChecklistTemplateItem.objects.unscoped().get(pk=foreign_item.pk).order == 1
+
+    def test_a_legitimate_item_still_updates(self):
+        services.update_item(
+            self.template,
+            self.item,
+            text="Editado",
+            item_type=ChecklistTemplateItem.ItemType.CHECK,
+        )
+
+        assert ChecklistTemplateItem.objects.unscoped().get(pk=self.item.pk).text == "Editado"
+
+
+class GetEditableVersionConvergenceTests(TestCase):
+    """Review finding 03-1, service side: a locked template forks exactly once.
+
+    A second caller arriving on the stale parent — the sequential stand-in for
+    the concurrent case the row lock now serializes — must be handed the fork
+    that already exists, not create a rival sibling. That is the same
+    converge-don't-duplicate shape as the scheduler's get_or_create.
+    """
+
+    def test_a_second_call_on_the_same_parent_returns_the_existing_fork(self):
+        template = ChecklistTemplateFactory(version=1)
+        ChecklistTemplateItemFactory(template=template, order=1)
+        lock_template(template)
+
+        first = services.get_editable_version(template)
+        second = services.get_editable_version(template)
+
+        assert first.pk == second.pk
+        assert ChecklistTemplate.objects.unscoped().filter(parent=template).count() == 1
 
 
 class NumericItemValidationTests(TestCase):
@@ -292,10 +385,10 @@ class DuplicateTemplateTests(TestCase):
         assert duplicate.name == f"{template.name} (copia)"
         assert ChecklistTemplateItem.objects.unscoped().filter(template=duplicate).count() == 1
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_duplicate_of_a_locked_template_does_not_fork_the_original(self, mock_locked):
+    def test_duplicate_of_a_locked_template_does_not_fork_the_original(self):
         template = ChecklistTemplateFactory(version=1)
         ChecklistTemplateItemFactory(template=template, order=1)
+        lock_template(template)
 
         services.duplicate_template(template)
 
@@ -316,9 +409,9 @@ class DeactivateTemplateTests(TestCase):
         assert reloaded.is_active is False
         assert reloaded_item.order == 1
 
-    @patch.object(ChecklistTemplate, "is_locked", return_value=True)
-    def test_deactivate_of_a_locked_template_does_not_fork(self, mock_locked):
+    def test_deactivate_of_a_locked_template_does_not_fork(self):
         template = ChecklistTemplateFactory(is_active=True, version=1)
+        lock_template(template)
 
         services.deactivate_template(template)
 
