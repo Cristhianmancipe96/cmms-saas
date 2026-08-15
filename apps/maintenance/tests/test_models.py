@@ -5,13 +5,15 @@ from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from apps.accounts.tests.factories import CompanyFactory, TechnicianUserFactory
+from apps.assets.models import Asset
 from apps.assets.tests.factories import AssetFactory
-from apps.maintenance.models import MaintenancePlan, MeterReading
+from apps.maintenance.models import MaintenancePlan, MeterReading, record_reading
 from apps.maintenance.tests.factories import (
     MaintenancePlanFactory,
     MeterPlanFactory,
@@ -191,3 +193,116 @@ class MeterReadingAuthorshipTests(TestCase):
 
         assert reading.recorded_by_id == technician.pk
         assert reading.source == MeterReading.Source.MANUAL
+
+
+class RecordReadingIsTheOnlyWriterTests(TestCase):
+    """Review finding 04-P2: the monotonic check and the insert must be one
+    atomic step, serialized per machine.
+
+    `validate_monotonic_reading` reads the current maximum and the INSERT
+    happens after it — a TOCTOU window in which two writers both read the same
+    maximum, both pass, and both commit. The fix takes `select_for_update` on
+    the *asset* row, so there is one writer per machine at a time.
+
+    A single-process test cannot stage a genuine race (a second connection
+    would block on the lock until this one commits, which is precisely the
+    point). What it can prove is that the lock is really taken, that both
+    writers of readings go through this function, and that the rule still
+    holds — the properties that would silently disappear if the fix were
+    reverted or bypassed.
+    """
+
+    def setUp(self):
+        self.company = CompanyFactory()
+        self.asset = AssetFactory(company=self.company)
+        self.technician = TechnicianUserFactory(company=self.company)
+
+    def test_it_writes_a_reading_with_the_assets_company(self):
+        reading = record_reading(
+            asset=self.asset,
+            reading_hours=Decimal("1250.50"),
+            source=MeterReading.Source.MANUAL,
+            recorded_by=self.technician,
+        )
+
+        assert reading.company_id == self.company.pk
+        assert reading.reading_hours == Decimal("1250.50")
+
+    def test_a_lower_reading_is_still_refused(self):
+        record_reading(
+            asset=self.asset,
+            reading_hours=Decimal("500.00"),
+            source=MeterReading.Source.MANUAL,
+        )
+
+        with pytest.raises(ValidationError):
+            record_reading(
+                asset=self.asset,
+                reading_hours=Decimal("400.00"),
+                source=MeterReading.Source.MANUAL,
+            )
+
+        assert MeterReading.objects.unscoped().filter(asset=self.asset).count() == 1
+
+    def test_an_equal_reading_is_allowed(self):
+        """A machine that did not run has the same hours; that is not backwards."""
+        record_reading(
+            asset=self.asset, reading_hours=Decimal("500.00"), source=MeterReading.Source.MANUAL
+        )
+        record_reading(
+            asset=self.asset, reading_hours=Decimal("500.00"), source=MeterReading.Source.MANUAL
+        )
+
+        assert MeterReading.objects.unscoped().filter(asset=self.asset).count() == 2
+
+    def test_it_takes_a_row_lock_on_the_asset(self):
+        """The guard against a silent revert: if the `select_for_update` were
+        dropped, the rule would still pass every other test in this class and
+        the race would be back. Assert on the SQL actually issued."""
+        with CaptureQueriesContext(connection) as queries:
+            record_reading(
+                asset=self.asset,
+                reading_hours=Decimal("10.00"),
+                source=MeterReading.Source.MANUAL,
+            )
+
+        locking = [
+            query["sql"]
+            for query in queries.captured_queries
+            if "assets_asset" in query["sql"] and "FOR UPDATE" in query["sql"]
+        ]
+        assert locking, "record_reading must lock the asset row before validating"
+
+    def test_the_lock_is_taken_before_the_maximum_is_read(self):
+        """Locking after the read would leave the window exactly where it was."""
+        with CaptureQueriesContext(connection) as queries:
+            record_reading(
+                asset=self.asset,
+                reading_hours=Decimal("10.00"),
+                source=MeterReading.Source.MANUAL,
+            )
+
+        statements = [query["sql"] for query in queries.captured_queries]
+        lock_index = next(
+            index
+            for index, sql in enumerate(statements)
+            if "assets_asset" in sql and "FOR UPDATE" in sql
+        )
+        max_index = next(
+            index
+            for index, sql in enumerate(statements)
+            if "MAX" in sql.upper() and "maintenance_meterreading" in sql
+        )
+        assert lock_index < max_index
+
+    def test_a_reading_for_a_deleted_asset_is_refused_rather_than_orphaned(self):
+        ghost = AssetFactory(company=self.company)
+        pk = ghost.pk
+        Asset.objects.unscoped().filter(pk=pk).delete()
+
+        with pytest.raises(ValidationError):
+            record_reading(
+                asset=ghost,
+                reading_hours=Decimal("10.00"),
+                source=MeterReading.Source.MANUAL,
+            )

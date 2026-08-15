@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import F, ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -9,7 +10,7 @@ from apps.assets.models import Asset
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
 from apps.maintenance import services
 from apps.maintenance.forms import MaintenancePlanForm, MeterReadingForm
-from apps.maintenance.models import MaintenancePlan, MeterReading
+from apps.maintenance.models import MaintenancePlan, MeterReading, record_reading
 
 ALL_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN, User.Role.STAFF)
 MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
@@ -219,14 +220,24 @@ def meter_reading_create(request, asset_pk):
     form = MeterReadingForm(request.POST, asset=asset)
     saved = False
     if form.is_valid():
-        reading = form.save(commit=False)
-        reading.company = asset.company
-        reading.asset = asset
-        reading.source = MeterReading.Source.MANUAL
-        reading.recorded_by = request.user
-        reading.save()
-        saved = True
-        form = MeterReadingForm(asset=asset)
+        try:
+            # Not form.save(): every reading is written through record_reading,
+            # which serializes on the asset row. The form's own check is the
+            # message-next-to-the-field version of the same rule; this one is
+            # the version that holds under two simultaneous submissions.
+            record_reading(
+                asset=asset,
+                reading_hours=form.cleaned_data["reading_hours"],
+                source=MeterReading.Source.MANUAL,
+                recorded_by=request.user,
+            )
+        except ValidationError as error:
+            # Only reachable when a concurrent writer won the race between the
+            # form's validation and ours: re-render with the same sentence.
+            form.add_error("reading_hours", error)
+        else:
+            saved = True
+            form = MeterReadingForm(asset=asset)
 
     context = meter_panel_context(asset, user=request.user, form=form)
     context["just_saved"] = saved

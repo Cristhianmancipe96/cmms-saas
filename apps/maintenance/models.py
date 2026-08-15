@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from apps.assets.models import Asset
@@ -194,6 +194,52 @@ def validate_monotonic_reading(asset_id: int, reading_hours, exclude_pk=None) ->
         raise ValidationError(
             f"La lectura ({normalize_hours(reading_hours)} h) no puede ser menor "
             f"que la última registrada ({normalize_hours(highest)} h)."
+        )
+
+
+def record_reading(
+    *,
+    asset,
+    reading_hours,
+    source: str,
+    recorded_by=None,
+    read_at=None,
+) -> "MeterReading":
+    """The ONE way an hour-meter reading is written. Serialized per machine.
+
+    `validate_monotonic_reading` reads the current maximum and the insert
+    happens after it — a classic TOCTOU window. Two technicians submitting
+    2.000 h and 1.900 h at the same moment both read "highest = 1.800",
+    both pass, and both commit: the meter has silently run backwards, and
+    every meter-driven plan on that asset now schedules off a number that
+    never happened.
+
+    `select_for_update` on the *asset* row is what closes it. The lock is
+    taken on the machine rather than on the readings, because the invariant
+    is "one writer per machine at a time" and there is no reading row to
+    lock when the first one is being inserted. Both writers of readings —
+    the quick-entry panel (`source=manual`) and closing a work order
+    (`source=work_order`) — come through here, so the serialization holds
+    for every path, not just the one the UI happens to use today.
+    """
+    from apps.assets.models import Asset
+
+    with transaction.atomic():
+        # .unscoped(): the lock must also be taken from a management command
+        # or a service call that runs outside the request cycle, where the
+        # scoped manager would match zero rows and quietly lock nothing —
+        # the failure mode is a lock that looks taken and isn't.
+        locked_asset = Asset.objects.unscoped().select_for_update().filter(pk=asset.pk).first()
+        if locked_asset is None:
+            raise ValidationError("El equipo ya no existe.")
+        validate_monotonic_reading(locked_asset.pk, reading_hours)
+        return MeterReading.objects.create(
+            company_id=locked_asset.company_id,
+            asset_id=locked_asset.pk,
+            reading_hours=reading_hours,
+            source=source,
+            recorded_by=recorded_by,
+            **({"read_at": read_at} if read_at is not None else {}),
         )
 
 
