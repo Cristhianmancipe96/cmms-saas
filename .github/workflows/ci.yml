@@ -33,6 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # WeasyPrint (brief 07) renders through Pango/HarfBuzz, which are system
+      # libraries rather than wheels. Without them the PDF tests skip
+      # themselves; `test_the_engine_is_available_in_ci` fails the build if
+      # that ever happens here.
+      - name: Install WeasyPrint system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:

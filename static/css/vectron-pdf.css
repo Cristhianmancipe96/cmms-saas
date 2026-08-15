@@ -1,0 +1,334 @@
+/* ==========================================================================
+   Vectron Management — print stylesheet for the two audit PDFs.
+
+   Deliberately NOT layered over vectron.css. That file is written for a
+   browser: oklch() colours, color-mix(), sticky positioning, tap targets,
+   dark mode. A PDF has none of those — it has one ink, one page size and no
+   viewport — and WeasyPrint's CSS support is not a browser's. So every colour
+   here is the plain hex documented in docs/design/DESIGN.md, and the layout
+   uses tables and inline-blocks rather than grid.
+
+   Scene: A4 on an auditor's desk, or on the screen of whoever received it by
+   email. It is read once, cover to cover, and it has to look like a document a
+   company issues — not like a web page someone pressed Ctrl+P on.
+   ========================================================================== */
+
+@page {
+  size: A4;
+  /* Wide top margin: the running header lives in it from page 2 onward. */
+  margin: 18mm 15mm 16mm 15mm;
+
+  @top-left {
+    content: string(doc-owner);
+    font-size: 7.5pt;
+    color: #57697B;
+    vertical-align: bottom;
+    padding-bottom: 3mm;
+  }
+  @top-right {
+    content: string(doc-title);
+    font-size: 7.5pt;
+    color: #57697B;
+    vertical-align: bottom;
+    padding-bottom: 3mm;
+  }
+  @bottom-left {
+    content: string(doc-footer);
+    font-size: 7.5pt;
+    color: #57697B;
+    vertical-align: top;
+    padding-top: 3mm;
+  }
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 7.5pt;
+    color: #57697B;
+    vertical-align: top;
+    padding-top: 3mm;
+  }
+}
+
+/* Page 1 carries the masthead, so repeating the same two strings above it
+   would be saying the company's name twice in 20mm. */
+@page :first {
+  @top-left { content: none; }
+  @top-right { content: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+
+html {
+  /* No webfont: a PDF must render identically on a machine that has never
+     seen this product, and DejaVu/Liberation are what a Linux renderer has. */
+  font-family: "Segoe UI", "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: #131C26;
+}
+
+body { margin: 0; }
+
+h1, h2, h3 { margin: 0; font-weight: 600; color: #1E2A38; }
+
+p { margin: 0 0 2mm; }
+
+small { font-size: 8pt; color: #57697B; }
+
+.muted { color: #57697B; }
+
+.dim { color: #8496A7; }
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   Masthead — page 1 only
+   -------------------------------------------------------------------------- */
+
+.masthead { width: 100%; border-collapse: collapse; }
+
+.masthead td { vertical-align: top; padding: 0; }
+
+.masthead .mark-cell { width: 12mm; }
+
+.masthead .mark-cell img { display: block; width: 9mm; height: 9mm; }
+
+.masthead .issuer { font-size: 12pt; font-weight: 600; color: #1E2A38; }
+
+.masthead .doc-kind {
+  text-align: right;
+  font-size: 12pt;
+  font-weight: 600;
+  color: #1E2A38;
+}
+
+.masthead .meta { font-size: 8pt; color: #57697B; }
+
+.masthead .meta-right { text-align: right; }
+
+/* The brand rule: navy bar with an orange lead segment. This is the only
+   orange on the page apart from the seal — DESIGN.md caps it at 10%. */
+.rule {
+  height: 2.5pt;
+  background: #1E2A38;
+  margin: 3mm 0 5mm;
+}
+
+.rule span {
+  display: block;
+  width: 26mm;
+  height: 2.5pt;
+  background: #F28619;
+}
+
+/* --------------------------------------------------------------------------
+   Document title block
+   -------------------------------------------------------------------------- */
+
+.identity { margin-bottom: 5mm; }
+
+.identity .code {
+  font-size: 20pt;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: #10181F;
+}
+
+.identity .name { font-size: 12pt; color: #131C26; }
+
+.identity .where { font-size: 8.5pt; color: #57697B; }
+
+/* --------------------------------------------------------------------------
+   Sections
+   -------------------------------------------------------------------------- */
+
+section { margin-bottom: 6mm; }
+
+section > h2 {
+  font-size: 10.5pt;
+  padding-bottom: 1.5mm;
+  margin-bottom: 2.5mm;
+  border-bottom: 0.75pt solid #C3CDD7;
+}
+
+/* Keep a heading with the first rows of what it introduces. */
+section > h2 { break-after: avoid; }
+
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; }
+
+/* Field/value ficha: the label is a row header, quiet; the value carries ink. */
+table.facts th {
+  width: 34%;
+  text-align: left;
+  font-weight: 400;
+  color: #57697B;
+  padding: 1.2mm 3mm 1.2mm 0;
+  border-bottom: 0.5pt solid #DEE5EB;
+  vertical-align: top;
+}
+
+table.facts td {
+  padding: 1.2mm 0;
+  border-bottom: 0.5pt solid #DEE5EB;
+  vertical-align: top;
+}
+
+/* Listing tables: history, checklist, plans. */
+table.grid { font-size: 8.5pt; }
+
+table.grid thead { display: table-header-group; }
+
+table.grid th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 8pt;
+  color: #1E2A38;
+  background: #ECF0F4;
+  padding: 1.5mm 2mm;
+  border-bottom: 0.75pt solid #1E2A38;
+}
+
+table.grid td {
+  padding: 1.5mm 2mm;
+  border-bottom: 0.5pt solid #DEE5EB;
+  vertical-align: top;
+}
+
+table.grid tr { break-inside: avoid; }
+
+table.grid .right { text-align: right; }
+
+/* A failed checklist item tints the whole row. DESIGN.md is explicit that the
+   guide is a tint, never a coloured side border. */
+table.grid tr.is-falla td { background: #FBE3E1; }
+
+.result-ok { color: #1D6E3F; font-weight: 600; }
+.result-falla { color: #AC322C; font-weight: 600; }
+.result-na { color: #57697B; }
+
+.empty {
+  font-size: 8.5pt;
+  color: #57697B;
+  border: 0.75pt dashed #C3CDD7;
+  padding: 3mm;
+}
+
+/* --------------------------------------------------------------------------
+   The equipment photo
+   -------------------------------------------------------------------------- */
+
+.ficha { width: 100%; border-collapse: collapse; }
+
+.ficha > tbody > tr > td { vertical-align: top; padding: 0; }
+
+.ficha .photo-cell { width: 52mm; padding-left: 6mm; }
+
+.photo-frame { border: 0.75pt solid #C3CDD7; padding: 1.5mm; }
+
+.photo-frame img { display: block; max-width: 46mm; max-height: 46mm; }
+
+/* --------------------------------------------------------------------------
+   Photographic record
+   -------------------------------------------------------------------------- */
+
+.photo-record { font-size: 0; }
+
+.photo-record .item {
+  display: inline-block;
+  width: 48%;
+  vertical-align: top;
+  margin: 0 2% 4mm 0;
+  break-inside: avoid;
+}
+
+.photo-record .item img {
+  display: block;
+  width: 100%;
+  max-height: 62mm;
+  border: 0.75pt solid #C3CDD7;
+}
+
+.photo-record .caption {
+  font-size: 8pt;
+  line-height: 1.35;
+  color: #57697B;
+  padding-top: 1mm;
+}
+
+/* --------------------------------------------------------------------------
+   The evidence block — who did the work, who checked it
+   -------------------------------------------------------------------------- */
+
+.evidence {
+  width: 100%;
+  border-collapse: collapse;
+  border: 0.75pt solid #1E2A38;
+  break-inside: avoid;
+}
+
+.evidence th {
+  width: 50%;
+  text-align: left;
+  font-size: 7.5pt;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  background: #1E2A38;
+  padding: 1.5mm 3mm;
+}
+
+.evidence td {
+  width: 50%;
+  padding: 3mm;
+  vertical-align: top;
+  border-right: 0.75pt solid #C3CDD7;
+}
+
+.evidence td:last-child { border-right: 0; }
+
+.evidence .who { font-size: 10pt; font-weight: 600; color: #10181F; }
+
+.evidence .when { font-size: 8.5pt; color: #57697B; }
+
+.evidence .pending { font-size: 9.5pt; color: #755808; }
+
+/* The seal, matching the navy `verificada` badge on screen. */
+.seal {
+  background: #1E2A38;
+  color: #E8EDF2;
+  font-size: 9pt;
+  padding: 2.5mm 3.5mm;
+  margin-bottom: 5mm;
+  break-inside: avoid;
+}
+
+.seal .check { color: #F28619; font-weight: 700; }
+
+.notice {
+  border: 0.75pt solid #C3CDD7;
+  background: #ECF0F4;
+  font-size: 8.5pt;
+  padding: 2.5mm 3.5mm;
+  margin-bottom: 5mm;
+}
+
+/* Long free text (trabajo realizado, motivo) reads as prose, not as a cell. */
+.prose { font-size: 9pt; white-space: pre-line; }
+
+/* --------------------------------------------------------------------------
+   Strings lifted into the page margins
+
+   All three live in the masthead, i.e. on page 1. `string()` carries the last
+   known value forward, so pages 2..n inherit them; an element that only
+   appeared on the last page would leave every earlier page's header blank.
+   -------------------------------------------------------------------------- */
+
+.set-owner { string-set: doc-owner content(text); }
+.set-title { string-set: doc-title content(text); }
+.set-footer { string-set: doc-footer content(text); }

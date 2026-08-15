@@ -235,6 +235,10 @@ def work_order_detail(request, pk):
             ),
             "can_execute": _may_execute(work_order, request.user),
             "pending_required": len(services.pending_required_items(work_order)),
+            # Brief 07: the report is a document about work that happened, so
+            # it appears only once the work order says it did.
+            "report_available": work_order.status in WorkOrder.DONE_STATUSES,
+            "can_email_report": services.is_manager(request.user),
         },
     )
 

@@ -1,0 +1,155 @@
+{% extends "reports/pdf/_base.html" %}
+
+{% block content %}
+    <div class="identity">
+        <div class="code">OT #{{ wo.pk }}</div>
+        <div class="name">{{ asset.code }} — {{ asset.name }}</div>
+        <div class="where">{{ asset.site.name }}{% if asset.location_detail %} · {{ asset.location_detail }}{% endif %} · {{ wo.get_type_display }} · {{ wo.get_status_display }}</div>
+    </div>
+
+    {% if wo.status == "verificada" %}
+        <p class="seal">
+            <span class="check">✓</span>
+            Verificada el {{ wo.verified_at|date:"d/m/Y H:i" }} por {{ wo.verified_by.get_full_name|default:wo.verified_by }}.
+            Esta orden quedó sellada como evidencia y no admite modificaciones.
+        </p>
+    {% else %}
+        <p class="notice">
+            Orden terminada, pendiente de verificación por un supervisor.
+        </p>
+    {% endif %}
+
+    <section>
+        <h2>Datos de la orden</h2>
+        <table class="facts">
+            <tbody>
+                <tr><th>Equipo</th><td>{{ asset.code }} — {{ asset.name }}</td></tr>
+                <tr><th>Sede</th><td>{{ asset.site.name }}</td></tr>
+                <tr><th>Tipo</th><td>{{ wo.get_type_display }}</td></tr>
+                <tr><th>Origen</th><td>{{ wo.get_origin_display }}{% if wo.plan %} — {{ wo.plan.name }}{% endif %}</td></tr>
+                <tr><th>Prioridad</th><td>{{ wo.get_priority_display }}</td></tr>
+                <tr><th>Fecha programada</th><td class="num">{{ wo.due_date|date:"d/m/Y"|default:"—" }}</td></tr>
+                <tr><th>Iniciada</th><td class="num">{{ wo.started_at|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+                <tr><th>Terminada</th><td class="num">{{ wo.finished_at|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+                {% if wo.failure_description %}
+                    <tr><th>Falla reportada</th><td class="prose">{{ wo.failure_description }}</td></tr>
+                {% endif %}
+                <tr><th>Tiempo de parada</th><td class="num">{% if wo.downtime_minutes is not None %}{{ wo.downtime_minutes }} min{% else %}—{% endif %}</td></tr>
+                <tr>
+                    <th>Costo</th>
+                    <td class="num">
+                        {% if wo.total_cost_cop is not None %}
+                            ${{ wo.total_cost_cop|floatformat:"0g" }}
+                            <small>(mano de obra ${{ wo.labor_cost_cop|default:0|floatformat:"0g" }} · repuestos ${{ wo.parts_cost_cop|default:0|floatformat:"0g" }})</small>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Trabajo realizado</h2>
+        {% if wo.work_done %}
+            <p class="prose">{{ wo.work_done }}</p>
+        {% else %}
+            <p class="empty">No se registró una descripción del trabajo.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Checklist ejecutado</h2>
+        {% if items %}
+            {% comment %}
+            These rows are the frozen copy taken when the order was created
+            (CLAUDE.md rule 4), never a read of the live template. Editing the
+            template afterwards cannot change a single character of this table.
+            {% endcomment %}
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Ítem</th><th>Resultado</th>
+                        <th>Valor medido</th><th>Rango esperado</th><th>Observación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr{% if item.is_failure %} class="is-falla"{% endif %}>
+                            <td class="num">{{ item.order }}</td>
+                            <td>{{ item.text }}{% if item.required %}{% else %} <small>(opcional)</small>{% endif %}</td>
+                            <td>
+                                {% if item.result == "ok" %}<span class="result-ok">OK</span>
+                                {% elif item.result == "falla" %}<span class="result-falla">Falla</span>
+                                {% elif item.result == "na" %}<span class="result-na">N/A</span>
+                                {% elif item.item_type == "text" and item.note %}<span class="result-ok">Respondido</span>
+                                {% else %}<span class="dim">Sin responder</span>{% endif %}
+                            </td>
+                            <td class="num">{% if item.numeric_value is not None %}{{ item.numeric_value|floatformat:"-2" }} {{ item.unit }}{% else %}—{% endif %}</td>
+                            <td class="num">{% if item.item_type == "numeric" %}{{ item.range_label|default:"—" }}{% else %}—{% endif %}</td>
+                            <td>{{ item.note|default:"—" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p>
+                <small>
+                    {{ items|length }} ítem{{ items|length|pluralize:"es" }} ·
+                    {% if failures %}{{ failures|length }} con falla{{ failures|length|pluralize:"s" }}{% else %}sin fallas{% endif %}
+                    {% if wo.checklist_template %} · copiado de «{{ wo.checklist_template }}» al crear la orden{% endif %}.
+                </small>
+            </p>
+        {% else %}
+            <p class="empty">Esta orden se ejecutó sin checklist.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Registro fotográfico</h2>
+        {% if photo_rows %}
+            <div class="photo-record">
+                {% for row in photo_rows %}
+                    <div class="item">
+                        <img src="{{ row.url }}" alt="{{ row.photo.caption|default:'Evidencia fotográfica' }}">
+                        <div class="caption">
+                            {{ forloop.counter }}. {{ row.photo.caption|default:"Sin descripción" }}<br>
+                            {{ row.photo.taken_at|date:"d/m/Y H:i" }}{% if row.photo.taken_by %} · {{ row.photo.taken_by.get_full_name|default:row.photo.taken_by }}{% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty">No se adjuntaron fotografías a esta orden.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Evidencia</h2>
+        <table class="evidence">
+            <tbody>
+                <tr>
+                    <th>Ejecutó</th>
+                    <th>Verificó</th>
+                </tr>
+                <tr>
+                    <td>
+                        {% if wo.completed_by %}
+                            <div class="who">{{ wo.completed_by.get_full_name|default:wo.completed_by }}</div>
+                            <div class="when">{{ wo.finished_at|date:"d/m/Y H:i" }}</div>
+                        {% else %}
+                            <div class="pending">Sin registrar</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if wo.verified_by %}
+                            <div class="who">{{ wo.verified_by.get_full_name|default:wo.verified_by }}</div>
+                            <div class="when">{{ wo.verified_at|date:"d/m/Y H:i" }}</div>
+                        {% else %}
+                            <div class="pending">Pendiente de verificación</div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <p><small>Quien ejecuta una orden nunca puede verificarla: son dos personas distintas por diseño del sistema.</small></p>
+    </section>
+{% endblock %}

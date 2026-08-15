@@ -1,0 +1,148 @@
+{% extends "reports/pdf/_base.html" %}
+
+{% block content %}
+    <div class="identity">
+        <div class="code">{{ asset.code }}</div>
+        <div class="name">{{ asset.name }}</div>
+        <div class="where">{{ asset.site.name }}{% if asset.location_detail %} · {{ asset.location_detail }}{% endif %} · {{ asset.category.name }}</div>
+    </div>
+
+    {% if asset.status == "dado_de_baja" %}
+        <p class="notice"><strong>Equipo dado de baja.</strong>{% if asset.baja_reason %} {{ asset.baja_reason }}{% endif %}</p>
+    {% endif %}
+
+    <section>
+        <h2>Ficha del equipo</h2>
+        <table class="ficha">
+            <tbody>
+                <tr>
+                    <td>
+                        <table class="facts">
+                            <tbody>
+                                <tr><th>Código interno</th><td class="num">{{ asset.code }}</td></tr>
+                                <tr><th>Marca</th><td>{{ asset.brand|default:"—" }}</td></tr>
+                                <tr><th>Modelo</th><td>{{ asset.model|default:"—" }}</td></tr>
+                                <tr><th>Número de serie</th><td class="num">{{ asset.serial_number|default:"—" }}</td></tr>
+                                <tr><th>Categoría</th><td>{{ asset.category.name }}</td></tr>
+                                <tr><th>Sede</th><td>{{ asset.site.name }}{% if asset.site.address %} — {{ asset.site.address }}{% endif %}</td></tr>
+                                <tr><th>Ubicación específica</th><td>{{ asset.location_detail|default:"—" }}</td></tr>
+                                <tr><th>Criticidad</th><td>{{ asset.get_criticality_display }}</td></tr>
+                                <tr><th>Estado</th><td>{{ asset.get_status_display }}</td></tr>
+                                <tr><th>Fecha de compra</th><td>{{ asset.purchase_date|date:"d/m/Y"|default:"—" }}</td></tr>
+                                <tr><th>Garantía hasta</th><td>{{ asset.warranty_until|date:"d/m/Y"|default:"—" }}</td></tr>
+                                <tr><th>Registrado el</th><td>{{ asset.created_at|date:"d/m/Y" }}</td></tr>
+                            </tbody>
+                        </table>
+                    </td>
+                    {% if photo_url %}
+                        <td class="photo-cell">
+                            <div class="photo-frame">
+                                <img src="{{ photo_url }}" alt="Fotografía de {{ asset.name }}">
+                            </div>
+                        </td>
+                    {% endif %}
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Ficha técnica</h2>
+        {% if asset.specs %}
+            {% comment %}
+            Rendered in the order the operator stored them. `specs` is a JSONB
+            *list* of key/value pairs precisely so this table can be read
+            against the manufacturer's plate line by line.
+            {% endcomment %}
+            <table class="facts">
+                <tbody>
+                    {% for pair in asset.specs %}
+                        <tr><th>{{ pair.key }}</th><td>{{ pair.value }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">Sin especificaciones técnicas registradas.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Documentos del equipo</h2>
+        {% if documents %}
+            <table class="grid">
+                <thead>
+                    <tr><th>Documento</th><th>Tipo</th><th>Adjuntado</th></tr>
+                </thead>
+                <tbody>
+                    {% for document in documents %}
+                        <tr>
+                            <td>{{ document.name }}</td>
+                            <td>{{ document.get_kind_display }}</td>
+                            <td class="num">{{ document.uploaded_at|date:"d/m/Y" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><small>Los archivos se consultan en la aplicación; este informe lista el inventario documental.</small></p>
+        {% else %}
+            <p class="empty">Sin manuales, garantías ni certificados adjuntos.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Planes de mantenimiento vigentes</h2>
+        {% if plans %}
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th>Plan</th><th>Tipo</th><th>Frecuencia</th>
+                        <th>Próximo vencimiento</th><th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in plans %}
+                        <tr>
+                            <td>{{ plan.name }}</td>
+                            <td>{{ plan.get_kind_display }}</td>
+                            <td>{{ plan.frequency_label }}</td>
+                            <td class="num">{{ plan.next_due_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td>{{ plan.due_label }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">Este equipo no tiene planes preventivos activos.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Historial de intervenciones</h2>
+        {% if history %}
+            <table class="grid">
+                <thead>
+                    <tr>
+                        <th>Fecha</th><th>OT</th><th>Tipo</th><th>Ejecutó</th>
+                        <th>Verificó</th><th class="right">Parada</th><th class="right">Costo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wo in history %}
+                        <tr>
+                            <td class="num">{{ wo.finished_at|date:"d/m/Y"|default:"—" }}</td>
+                            <td class="num">#{{ wo.pk }}</td>
+                            <td>{{ wo.get_type_display }}</td>
+                            <td>{{ wo.completed_by.get_full_name|default:wo.completed_by|default:"—" }}</td>
+                            <td>{% if wo.verified_by %}{{ wo.verified_by.get_full_name|default:wo.verified_by }}<br><small>{{ wo.verified_at|date:"d/m/Y" }}</small>{% else %}<span class="dim">Sin verificar</span>{% endif %}</td>
+                            <td class="right num">{% if wo.downtime_minutes is not None %}{{ wo.downtime_minutes }} min{% else %}—{% endif %}</td>
+                            <td class="right num">{% if wo.total_cost_cop is not None %}${{ wo.total_cost_cop|floatformat:"0g" }}{% else %}—{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><small>{{ history|length }} intervención{{ history|length|pluralize:"es" }} registrada{{ history|length|pluralize }} · {{ downtime_total }} minutos de parada acumulados.</small></p>
+        {% else %}
+            <p class="empty">Todavía no se ha registrado ninguna intervención terminada sobre este equipo.</p>
+        {% endif %}
+    </section>
+{% endblock %}

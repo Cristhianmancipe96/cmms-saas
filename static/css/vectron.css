@@ -588,6 +588,23 @@ a.vt-row:is(:hover, :focus-visible) {
 }
 .vt-fieldset > legend + small { display: block; margin-bottom: 0.75rem; color: var(--vt-muted); }
 
+/* Recipient picker (brief 07). A list of colleagues, never a text field: a
+   typed address is how an audit report leaves the company by one typo. Each
+   row is a full-width 44px target so the whole label is tappable, not just the
+   12px box Pico draws. */
+.vt-recipients > label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--vt-tap);
+  margin: 0;
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  cursor: pointer;
+}
+.vt-recipients > label:last-of-type { border-bottom: 0; }
+.vt-recipients input[type="checkbox"] { margin: 0; flex: 0 0 auto; }
+
 /* Field-level error text. Pico colours the input via aria-invalid; this is
    the sentence that says why, tied to the input with aria-describedby. */
 .vt-field-error { display: block; margin-top: -0.5rem; margin-bottom: 0.75rem; color: var(--vt-danger-700); font-size: 0.8125rem; }

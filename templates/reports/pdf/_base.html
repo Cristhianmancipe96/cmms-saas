@@ -1,0 +1,36 @@
+{% comment %}
+Shell shared by both PDFs. Lives under reports/pdf/ and extends nothing from
+templates/base.html on purpose: that template is a web page — top bar, nav,
+htmx, Pico, dark mode — and a printed document has none of it.
+
+Everything a page-2 header needs is set here, in the masthead, because
+`string()` carries a value forward but cannot reach backwards to a page that
+was laid out before the element appeared.
+{% endcomment %}<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>{{ doc_kind }} · {{ company.name }}</title>
+    <link rel="stylesheet" href="{{ stylesheet_url }}">
+</head>
+<body>
+    <table class="masthead">
+        <tbody>
+            <tr>
+                <td class="mark-cell"><img src="{{ brand_mark_url }}" alt=""></td>
+                <td>
+                    <div class="issuer set-owner">{{ company.name }}</div>
+                    <div class="meta">NIT {{ company.nit }}</div>
+                </td>
+                <td>
+                    <div class="doc-kind set-title">{{ doc_kind }}</div>
+                    <div class="meta meta-right set-footer">Vectron Management · generado el {{ generated_at|date:"d/m/Y H:i" }}</div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="rule"><span></span></div>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

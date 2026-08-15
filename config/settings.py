@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.checklists",
     "apps.maintenance",
     "apps.workorders",
+    "apps.reports",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -132,6 +133,29 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+# Email (brief 07)
+# https://docs.djangoproject.com/en/5.2/topics/email/
+#
+# The default backend prints to the console instead of sending: a developer who
+# never sets EMAIL_* gets a visible message in the terminal rather than silent
+# nothing. Production sets EMAIL_BACKEND to the SMTP one (Gmail, Resend, ...).
+
+EMAIL_BACKEND = env.str(
+    "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = env.str("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+# Not optional: without it a dead SMTP host holds the worker until the OS gives
+# up, which turns "el correo no salió" into "la aplicación se congeló".
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=20)
+DEFAULT_FROM_EMAIL = env.str(
+    "DEFAULT_FROM_EMAIL", default="Vectron Management <no-reply@vectron.local>"
+)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

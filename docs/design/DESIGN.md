@@ -108,8 +108,10 @@ Scene: a sticker on a machine, a phone held in front of it. Everything below fal
 of the fact that **the app does not know who is holding the phone until it does**.
 
 - **`.vt-plate`** — what a scan shows with no session, and to anyone outside the
-  machine's company (byte-identical pages, so a login can never reveal whose machine a
-  UUID is). It shows the internal code and the name: exactly what is already printed on
+  machine's company (identical plate either way — same template, same two values, nothing
+  that varies with the machine's owner — so a login can never reveal whose machine a UUID
+  is; the surrounding top bar does differ, because that is about the viewer, not about the
+  machine). It shows the internal code and the name: exactly what is already printed on
   the label the person is standing in front of. The screen's job is to say almost
   nothing, and that has to read as deliberate rather than broken — so it borrows the
   object it stands in for: the engraved nameplate riveted to the machine's frame. A

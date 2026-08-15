@@ -271,6 +271,12 @@ class WorkOrder(CompanyScopedModel):
     # after `terminada` is the supervisor's queue, not the technician's.
     OPEN_STATUSES = (Status.ABIERTA, Status.ASIGNADA, Status.EN_PROGRESO)
 
+    # The work actually happened. Brief 07's report exists only for these: the
+    # detail screen offers the button, and apps/reports/documents.py resolves
+    # the URL, from this one tuple rather than from two `{% if %}`s that could
+    # drift apart.
+    DONE_STATUSES = (Status.TERMINADA, Status.VERIFICADA)
+
     def is_overdue(self, today) -> bool:
         return (
             self.due_date is not None

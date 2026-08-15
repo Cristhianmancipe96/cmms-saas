@@ -1,5 +1,7 @@
 import secrets
+from urllib.parse import urljoin
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import LoginView, PasswordChangeDoneView, PasswordChangeView
 from django.db import transaction
@@ -10,6 +12,8 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from apps.accounts.forms import SiteForm, UserInviteForm
 from apps.accounts.models import Site, Subscription, User
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
+from apps.reports import emails, mailer
+from apps.reports.models import NotificationLog
 
 ALL_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN, User.Role.STAFF)
 MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
@@ -104,6 +108,7 @@ def user_invite(request):
     if request.method == "POST":
         form = UserInviteForm(request.POST)
         if form.is_valid():
+            temp_password = secrets.token_urlsafe(9)
             with transaction.atomic():
                 # Lock the subscription row so two concurrent invites for the
                 # same company can't both pass the seat check before either
@@ -112,16 +117,52 @@ def user_invite(request):
                 if _seats_full(company):
                     messages.error(request, _seats_full_message(company))
                     return redirect("user_list")
-                temp_password = secrets.token_urlsafe(9)
                 user = form.save(commit=False)
                 user.company = company
                 user.set_password(temp_password)
                 user.save()
-            messages.success(
-                request,
-                f"Usuario {user.username} creado. Contraseña temporal: {temp_password} "
-                "— compártela por un canal seguro, no volverá a mostrarse.",
+                # Read out now: if the send fails the row below is rolled back
+                # and `user` becomes a stale object with a pk that no longer
+                # exists.
+                username, address = user.get_username(), user.email
+                subject, body = emails.temp_password_message(
+                    user=user,
+                    temp_password=temp_password,
+                    company=company,
+                    login_url=urljoin(settings.SITE_URL, reverse("login")),
+                )
+                delivery = mailer.deliver(recipient=address, subject=subject, body=body)
+                if not delivery.ok:
+                    # Brief 07 carry-over: the temporary password is never
+                    # printed on screen any more, so the email IS the
+                    # invitation. Undelivered, it would leave an account nobody
+                    # can enter and a seat nobody can reclaim — and the
+                    # password itself would exist only in a log line. Roll the
+                    # whole invitation back and let the admin retry.
+                    transaction.set_rollback(True)
+
+            # Outside the block on purpose: the row recording a failed send has
+            # to survive the rollback that failure just caused.
+            mailer.log(
+                delivery,
+                company=company,
+                kind=NotificationLog.Kind.TEMP_PASSWORD,
+                sent_by=request.user,
             )
+
+            if delivery.ok:
+                messages.success(
+                    request,
+                    f"Usuario {username} creado. Le enviamos la contraseña "
+                    f"temporal a {address}.",
+                )
+            else:
+                messages.error(
+                    request,
+                    f"No se pudo enviar el correo a {address}, así que el usuario "
+                    "no se creó. Revisa la configuración de correo e inténtalo "
+                    "de nuevo.",
+                )
             return redirect("user_list")
     else:
         form = UserInviteForm()

@@ -36,6 +36,12 @@
         {% if "verify" in actions %}
             <a href="{% url 'workorder_verify' wo.pk %}" role="button">Verificar</a>
         {% endif %}
+        {% if report_available %}
+            <a href="{% url 'workorder_report_pdf' wo.pk %}" role="button" class="secondary">Informe (PDF)</a>
+            {% if can_email_report %}
+                <a href="{% url 'workorder_report_send' wo.pk %}" role="button" class="secondary outline">Enviar por correo</a>
+            {% endif %}
+        {% endif %}
         {% if "cancel" in actions %}
             <a href="{% url 'workorder_cancel' wo.pk %}" role="button" class="secondary outline">Cancelar OT</a>
         {% endif %}

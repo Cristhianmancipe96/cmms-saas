@@ -72,6 +72,36 @@ uv run ruff check .          # lint
 uv run python manage.py runserver
 ```
 
+### PDFs: WeasyPrint needs system libraries
+
+The two audit documents (hoja de vida, informe de OT) are rendered by
+[WeasyPrint](https://weasyprint.org), which draws text through **Pango/HarfBuzz** — C
+libraries, not Python wheels. `uv sync` installs the Python package; the native side has
+to come from the operating system:
+
+- **Linux (CI and production):** `sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0`
+- **macOS:** `brew install pango`
+- **Windows:** install the
+  [GTK3 runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases)
+  (add it to `PATH`) and reopen the terminal.
+
+Without them the app still runs and every other feature works: the PDF buttons answer
+with a Spanish "falta el motor de impresión en el servidor" message instead of a 500, and
+`apps/reports/tests/test_pdf_output.py` skips itself with the same explanation. Check
+with:
+
+```bash
+uv run python -c "from apps.reports import pdf; print(pdf.engine_available())"
+```
+
+### Email
+
+"Enviar por correo" and the invitation that carries a new user's temporary password both
+go through Django's SMTP backend, configured by `EMAIL_*` in `.env` (see
+`.env.example`). Left unset, mail is printed to the console instead of sent — handy in
+development, and never silent. Every attempt, successful or not, writes a row in
+`notification_log`.
+
 ### Scheduling the daily job
 
 Preventive work orders are created by a management command, not by a background worker:

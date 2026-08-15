@@ -26,9 +26,16 @@ Two invariants this module exists to keep:
 Why the plate and not a 404 for a stranger (brief item 4): a QR sticker is
 physically public — anyone who can stand in front of the machine can read the
 same code and name off the label itself, session or not. Serving the plate to
-an out-of-company user makes their response **byte-identical to the anonymous
-one**, so nobody can use a login to learn "this UUID belongs to some other
-company". Choosing 404 there would have leaked exactly that. What remains
+an out-of-company user makes **the plate they get identical to the anonymous
+one** — same template, same two values, nothing that varies with who owns the
+machine — so nobody can use a login to learn "this UUID belongs to some other
+company". Choosing 404 there would have leaked exactly that.
+
+Note what that claim does *not* say: the two HTTP responses are not identical
+byte for byte, and cannot be. They share `base.html`, whose top bar renders
+«Salir» and a nav for a logged-in visitor and «Iniciar sesión» for an
+anonymous one. That difference is about the *viewer*, not about the machine,
+which is the only distinction that would leak anything. What also remains
 distinguishable is "this UUID exists" (plate) versus "it does not" (404), and
 that is inherent to showing a plate at all — harmless against a uuid4, which
 cannot be enumerated.

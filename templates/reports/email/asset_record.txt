@@ -1,0 +1,12 @@
+{% autoescape off %}Hola,
+
+{{ sender.get_full_name|default:sender.get_username }} te comparte la hoja de vida del equipo
+{{ asset.code }} — {{ asset.name }} ({{ asset.site.name }}).
+
+Va adjunta en PDF, con la ficha técnica, los planes de mantenimiento vigentes y
+el historial de intervenciones registradas hasta hoy.
+
+--
+{{ company.name }} · Vectron Management
+Este correo se generó automáticamente; no hace falta responderlo.
+{% endautoescape %}

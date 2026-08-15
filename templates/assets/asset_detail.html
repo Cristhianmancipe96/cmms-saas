@@ -9,19 +9,24 @@
         <span class="vt-badge vt-badge--{{ asset.status }}">{{ asset.get_status_display }}</span>
     </h1>
 
-    {% if user.role == "admin" or user.role == "supervisor" %}
-        {# .vt-actions, not a bare <p>: DESIGN.md — Pico's inline-block buttons
-           overflow a 390px viewport without it, and this row just grew a
-           fourth button. #}
-        <div class="vt-actions">
+    {# .vt-actions, not a bare <p>: DESIGN.md — Pico's inline-block buttons
+       overflow a 390px viewport without it. The row always renders now: the
+       hoja de vida is a read, so every role in the company gets it; everything
+       else stays with the people who own the equipment list. #}
+    <div class="vt-actions">
+        {% if user.role == "admin" or user.role == "supervisor" %}
             <a href="{% url 'asset_update' asset.pk %}" role="button">Editar</a>
+        {% endif %}
+        <a href="{% url 'asset_record_pdf' asset.pk %}" role="button" class="secondary">Hoja de vida (PDF)</a>
+        {% if user.role == "admin" or user.role == "supervisor" %}
+            <a href="{% url 'asset_record_send' asset.pk %}" role="button" class="secondary outline">Enviar por correo</a>
             <a href="{% url 'asset_label' asset.pk %}" role="button" class="secondary">Etiqueta QR</a>
             {% if asset.status != "dado_de_baja" %}
                 <a href="{% url 'asset_baja' asset.pk %}" role="button" class="secondary">Dar de baja</a>
             {% endif %}
             <a href="{% url 'asset_delete' asset.pk %}" role="button" class="secondary">Eliminar</a>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 
     {% if asset.status == "dado_de_baja" and asset.baja_reason %}
         <article role="alert" class="vt-alert vt-alert--warning">

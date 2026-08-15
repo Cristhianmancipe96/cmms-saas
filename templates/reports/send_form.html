@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% comment %}
+One screen for both documents. Sending is an action with a recipient and a
+permanent record, so it gets a page that names both — not a one-tap button
+next to «Descargar».
+
+The recipient list is the form field: there is no free-text address anywhere in
+this product (apps/reports/forms.py explains why).
+{% endcomment %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>{{ heading }}</h1>
+        <p>{{ summary }}</p>
+    </hgroup>
+
+    <form method="post">
+        {% csrf_token %}
+        <fieldset class="vt-fieldset vt-recipients">
+            <legend>{{ form.recipients.label }}</legend>
+            {% for choice in form.recipients %}
+                <label for="{{ choice.id_for_label }}">
+                    {{ choice.tag }} <span>{{ choice.choice_label }}</span>
+                </label>
+            {% empty %}
+                <div class="vt-empty">
+                    <p>Nadie de tu empresa tiene correo registrado.</p>
+                    <small>Agrega el correo en la ficha de cada usuario para poder enviarles documentos.</small>
+                </div>
+            {% endfor %}
+        </fieldset>
+
+        {% if form.recipients.errors %}
+            <small class="vt-field-error">
+                {% for error in form.recipients.errors %}{{ error }}{% if not forloop.last %} {% endif %}{% endfor %}
+            </small>
+        {% endif %}
+
+        <p class="vt-meta">El PDF se genera en el momento del envío y viaja como archivo adjunto. No queda guardado en el servidor.</p>
+
+        <div class="vt-actions">
+            <button type="submit">Enviar por correo</button>
+            <a href="{{ back_url }}" role="button" class="secondary outline">Volver</a>
+        </div>
+    </form>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% autoescape off %}Hola,
+
+{{ sender.get_full_name|default:sender.get_username }} te comparte el informe de la orden de trabajo
+#{{ wo.pk }} sobre el equipo {{ wo.asset.code }} — {{ wo.asset.name }}.
+
+Estado: {{ wo.get_status_display }}
+Terminada: {{ wo.finished_at|date:"d/m/Y H:i"|default:"—" }}
+Ejecutó: {{ wo.completed_by.get_full_name|default:wo.completed_by|default:"—" }}
+Verificó: {{ wo.verified_by.get_full_name|default:wo.verified_by|default:"pendiente" }}
+
+El informe va adjunto en PDF, con el checklist ejecutado y el registro fotográfico.
+
+--
+{{ company.name }} · Vectron Management
+Este correo se generó automáticamente; no hace falta responderlo.
+{% endautoescape %}

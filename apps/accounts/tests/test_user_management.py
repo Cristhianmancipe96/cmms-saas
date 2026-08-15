@@ -1,3 +1,4 @@
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
@@ -31,7 +32,14 @@ class UserManagementTests(TestCase):
         assert user.role == "technician"
         assert user.is_active is True
         assert user.has_usable_password()
-        assert "Contraseña temporal" in response.content.decode()
+        # Brief 07 carry-over: the password reaches the new user by email and
+        # is never printed on the admin's screen. The full delivery — the log
+        # row, the rollback when SMTP is down — is covered in
+        # apps/reports/tests/test_email.py.
+        assert "Le enviamos la contraseña temporal a nuevo@example.com" in (
+            response.content.decode()
+        )
+        assert mail.outbox[0].to == ["nuevo@example.com"]
 
     def test_max_users_blocks_invite_past_the_limit(self):
         # self.admin already occupies one seat; adding a second hits max_users=2.

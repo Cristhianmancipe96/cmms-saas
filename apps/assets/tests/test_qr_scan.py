@@ -269,9 +269,12 @@ class ScanStaffTests(ScanBaseTests):
 class ScanOtherCompanyTests(ScanBaseTests):
     """Brief item 4, decided: an authenticated outsider gets the plate.
 
-    The assertion that matters is not "they see little" but "they see exactly
-    what an anonymous visitor sees" — identical responses are what stop a
-    login from being used to find out whose machine a UUID belongs to.
+    The assertion that matters is not "they see little" but "they learn nothing
+    about the machine that an anonymous visitor would not learn" — the plate is
+    the same either way, which is what stops a login from being used to find
+    out whose machine a UUID belongs to. The two *responses* are not identical
+    byte for byte: base.html renders «Salir» for a session and «Iniciar sesión»
+    without one. That difference describes the viewer, not the machine.
     """
 
     def setUp(self):

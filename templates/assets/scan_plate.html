@@ -2,8 +2,11 @@
 
 {% comment %}
 What a QR scan shows to someone with no session — and to a logged-in user
-from another company, byte for byte the same page, so a login can never be
-used to find out whose machine a UUID belongs to.
+from another company: the same plate either way, because nothing rendered
+below varies with who owns the machine, so a login can never be used to find
+out whose machine a UUID belongs to. (The top bar in base.html does differ
+between the two — «Salir» versus «Iniciar sesión» — but that says something
+about the viewer, not about the machine.)
 
 The context this template receives is `code` and `name`. There is no `asset`
 object in it, on purpose: a template can only leak what it was handed, so the
