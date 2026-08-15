@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Cancelar OT #{{ wo.pk }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Cancelar OT #{{ wo.pk }}</h1>
+        <p>{{ wo.asset.code }} — {{ wo.asset.name }}</p>
+    </hgroup>
+
+    <p class="vt-alert vt-alert--warning">
+        La OT queda cancelada y no se puede reabrir. El motivo se guarda con
+        ella: es lo que un auditor va a leer para entender por qué no se hizo.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% include "maintenance/_field.html" with field=form.reason %}
+        <div class="vt-actions">
+            <button type="submit">Cancelar la OT</button>
+            <a href="{% url 'workorder_detail' wo.pk %}" role="button" class="secondary outline">Volver</a>
+        </div>
+    </form>
+{% endblock %}

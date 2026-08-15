@@ -53,6 +53,55 @@ An overdue row also takes `.vt-row--vencido`: a 6% danger tint across the **whol
 never a coloured left border. The tint guides the eye down a long list; the badge, not
 the colour, carries the meaning.
 
+## Work-order execution — the phone screen (brief 05)
+
+Scene, restated because every decision below falls out of it: a technician on a
+plant floor, bright ambient light, **one hand free**, gloves on, network that comes
+and goes. This is the screen the product is judged on.
+
+- **Two tap sizes.** `--vt-tap` = 44px is the accessibility floor used across the app;
+  `--vt-tap-lg` = 48px is the plant-floor size, used by every control on the execution
+  screen. A gloved thumb is not a mouse pointer.
+- **`.vt-exec-head`** — machine context (code + name + state) pinned under the top bar
+  (`top: 3.5rem`). Mid-checklist, "which machine am I on?" must never cost a scroll.
+- **`.vt-progress`** — a 6px track plus a sentence. Deliberately *not* the hero-metric
+  template: the number that matters ("faltan 2 obligatorios") is written in words; the
+  bar is a glance-level cue only. Updated by an HTMX out-of-band swap on every item
+  save, so the counter and the rows are always one response apart, never two.
+- **`.vt-check-item`** — one item, one `<form>`, one round trip. Saved per item because a
+  dropped connection must cost the last tap, not the last twenty minutes. Answered items
+  recede (muted text); `is-falla` takes a 6% danger tint across the whole row so a
+  supervisor can find failures while scrolling — a tint, never a coloured side border.
+  `.htmx-settling` flashes the row green for 400ms: long enough to register while
+  looking at your hands, short enough not to queue behind fast taps.
+- **`.vt-check-order`** — the ordinal as a quiet chip, so every item's text starts at the
+  same left edge instead of being indented by "10." vs "1.".
+- **`.vt-num`** — numeric answer: a 48px `inputmode="decimal"` field with the unit beside
+  it and the expected range as hint text underneath. Out-of-range is stated as a verdict
+  ("queda registrado como falla"), never left for the reader to infer from a colour.
+- **`.vt-check-note`** — the observación collapsed inside `<details>`, submitted by the
+  same button that saves the answer (one round trip). The summary says so.
+- **`.vt-photo-grid`** — square thumbnails, `auto-fill minmax(5.5rem, 1fr)`, no
+  breakpoints. The upload input carries `capture="environment"`, so evidence is one tap
+  from the rear camera instead of a trip through the gallery.
+- **`.vt-submit-lg`** — one full-width primary action per screen ("Terminar OT").
+
+## Work-order detail (brief 05)
+
+- **`.vt-seal`** — solid navy banner with an orange ✓, matching the `verificada` badge:
+  a sealed work order says so once, at the top, in words ("Ya no se puede modificar").
+- **`.vt-timeline`** — who/when as a plain bordered list, oldest first. No decorative
+  vertical rail: the information is the name and the timestamp. Brief 08 replaces the
+  derived events with real audit rows; the component does not change.
+- **`.vt-filters`** — filter bars wrap (`flex-wrap`) rather than squeezing five controls
+  onto one phone line; each control gets `flex: 1 1 10rem`.
+- **The top bar scrolls, it does not wrap.** With «Mis OTs» and «OTs» added, the nav no
+  longer fits a 390px row. Wrapping would make the bar two or three rows tall depending
+  on role and viewport — and the execution screen's sticky machine bar has to sit at a
+  known offset beneath it (`top: 3.5rem`). So `.vt-nav` scrolls horizontally inside
+  itself, with the scrollbar hidden (it would eat a third of a 3.5rem tap target). The
+  page body never scrolls sideways; only the nav does.
+
 ## Component rules
 
 - **Top bar** (`.vt-topbar`): navy in both themes, sticky, brand lockup left (mark +

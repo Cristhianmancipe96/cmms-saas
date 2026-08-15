@@ -37,6 +37,7 @@ from apps.assets.models import Asset
 from apps.checklists.models import ChecklistTemplate
 from apps.core.tenancy import current_company_id
 from apps.maintenance.models import MaintenancePlan, MeterReading
+from apps.workorders import services as workorder_services
 from apps.workorders.models import WorkOrder
 
 # Presets that mean a named calendar period rather than a literal day count.
@@ -179,6 +180,12 @@ def _create_work_order(plan: MaintenancePlan, *, due_date: date, result: Schedul
         },
     )
     if created:
+        # Brief 05, build item 2: the checklist is frozen onto the work order
+        # the moment it is born. Only on `created` — a second scheduler run
+        # returning the existing row must not append a second snapshot, which
+        # is the same idempotency guarantee `get_or_create` gives the row
+        # itself (CLAUDE.md rule 5), extended to its children.
+        workorder_services.snapshot_checklist(work_order, resolve_checklist_template(plan))
         result.created += 1
     else:
         result.skipped_existing += 1

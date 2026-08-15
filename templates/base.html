@@ -23,6 +23,10 @@
             </a>
             <ul class="vt-nav">
                 {% if user.is_authenticated %}
+                    {% if user.role != "staff" %}
+                        <li><a href="{% url 'workorder_mine' %}">Mis OTs</a></li>
+                    {% endif %}
+                    <li><a href="{% url 'workorder_list' %}">OTs</a></li>
                     <li><a href="{% url 'site_list' %}">Sitios</a></li>
                     <li><a href="{% url 'asset_list' %}">Equipos</a></li>
                     <li><a href="{% url 'maintenanceplan_list' %}">Planes</a></li>

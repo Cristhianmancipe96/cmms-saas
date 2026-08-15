@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Órdenes de trabajo{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Órdenes de trabajo</h1>
+        <p>
+            {% if overdue_count %}
+                {{ overdue_count }} vencida{{ overdue_count|pluralize }} sin terminar.
+            {% else %}
+                Ninguna OT vencida.
+            {% endif %}
+        </p>
+    </hgroup>
+
+    <form method="get" class="vt-filters" role="search">
+        <label class="vt-sr-only" for="filtro-estado">Estado</label>
+        <select name="estado" id="filtro-estado">
+            <option value="">Todos los estados</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if filters.estado == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-sr-only" for="filtro-tipo">Tipo</label>
+        <select name="tipo" id="filtro-tipo">
+            <option value="">Todos los tipos</option>
+            {% for value, label in type_choices %}
+                <option value="{{ value }}" {% if filters.tipo == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-sr-only" for="filtro-equipo">Equipo</label>
+        <select name="equipo" id="filtro-equipo">
+            <option value="">Todos los equipos</option>
+            {% for asset in assets %}
+                <option value="{{ asset.pk }}" {% if filters.equipo == asset.pk|stringformat:"s" %}selected{% endif %}>{{ asset.code }} — {{ asset.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-sr-only" for="filtro-tecnico">Responsable</label>
+        <select name="tecnico" id="filtro-tecnico">
+            <option value="">Cualquier responsable</option>
+            {% for person in technicians %}
+                <option value="{{ person.pk }}" {% if filters.tecnico == person.pk|stringformat:"s" %}selected{% endif %}>{{ person }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="vt-check-inline">
+            <input type="checkbox" name="vencidas" value="1" {% if filters.vencidas %}checked{% endif %}>
+            Solo vencidas
+        </label>
+
+        <button type="submit">Filtrar</button>
+    </form>
+
+    <ul class="vt-list">
+        {% for wo in work_orders %}
+            {% include "workorders/_work_order_row.html" with wo=wo show_asset=True show_assignee=True %}
+        {% empty %}
+            <li>
+                <div class="vt-empty">
+                    {% if is_filtered %}
+                        <p>No hay OTs con esos filtros.</p>
+                        <small>Prueba con otro estado o quita el filtro.</small>
+                        <a href="{% url 'workorder_list' %}" role="button" class="secondary outline">Ver todas</a>
+                    {% else %}
+                        <p>Aún no hay órdenes de trabajo.</p>
+                        <small>
+                            Las preventivas las crea solo el programador a partir de los planes.
+                            Las correctivas se reportan desde la ficha del equipo.
+                        </small>
+                        {% if can_report %}
+                            <a href="{% url 'asset_list' %}" role="button">Ir a equipos</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if is_paginated %}
+        <nav aria-label="Paginación">
+            <p>
+                {% if page_obj.has_previous %}
+                    <a href="?{{ querystring }}page={{ page_obj.previous_page_number }}">&larr; Anterior</a>
+                {% endif %}
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a href="?{{ querystring }}page={{ page_obj.next_page_number }}">Siguiente &rarr;</a>
+                {% endif %}
+            </p>
+        </nav>
+    {% endif %}
+{% endblock %}

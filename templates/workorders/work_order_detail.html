@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}OT #{{ wo.pk }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>OT #{{ wo.pk }} <span class="vt-badge vt-badge--{{ wo.badge_modifier }}">{{ wo.get_status_display }}</span></h1>
+        <p><a href="{% url 'asset_detail' wo.asset.pk %}">{{ wo.asset.code }} — {{ wo.asset.name }}</a> · {{ wo.asset.site.name }}</p>
+    </hgroup>
+
+    {% if wo.status == "verificada" %}
+        {% comment %}
+        The seal, stated once and plainly. A verified work order is evidence:
+        the reader needs to know nothing on this page can change any more.
+        {% endcomment %}
+        <p class="vt-seal">
+            Sellada el {{ wo.verified_at|date:"d/m/Y H:i" }} por {{ wo.verified_by }}.
+            Ya no se puede modificar.
+        </p>
+    {% elif wo.overdue %}
+        <p class="vt-alert vt-alert--error" role="status">
+            Vencida desde el {{ wo.due_date|date:"d/m/Y" }}.
+        </p>
+    {% endif %}
+
+    <div class="vt-actions">
+        {% if can_execute and wo.status == "en_progreso" %}
+            <a href="{% url 'workorder_execute' wo.pk %}" role="button">Continuar ejecución</a>
+        {% endif %}
+        {% if "start" in actions %}
+            <form method="post" action="{% url 'workorder_start' wo.pk %}">
+                {% csrf_token %}
+                <button type="submit">Iniciar trabajo</button>
+            </form>
+        {% endif %}
+        {% if "verify" in actions %}
+            <a href="{% url 'workorder_verify' wo.pk %}" role="button">Verificar</a>
+        {% endif %}
+        {% if "cancel" in actions %}
+            <a href="{% url 'workorder_cancel' wo.pk %}" role="button" class="secondary outline">Cancelar OT</a>
+        {% endif %}
+    </div>
+
+    {% if assign_form %}
+        <form method="post" action="{% url 'workorder_assign' wo.pk %}" class="vt-assign">
+            {% csrf_token %}
+            {% include "maintenance/_field.html" with field=assign_form.assignee %}
+            <button type="submit" class="secondary">Asignar</button>
+        </form>
+    {% endif %}
+
+    <section>
+        <h2>Datos</h2>
+        <table>
+            <tbody>
+                <tr><th scope="row">Tipo</th><td>{{ wo.get_type_display }}</td></tr>
+                <tr><th scope="row">Origen</th><td>{{ wo.get_origin_display }}{% if wo.plan %} · <a href="{% url 'maintenanceplan_detail' wo.plan.pk %}">{{ wo.plan.name }}</a>{% endif %}</td></tr>
+                <tr><th scope="row">Prioridad</th><td>{{ wo.get_priority_display }}</td></tr>
+                <tr><th scope="row">Fecha programada</th><td>{{ wo.due_date|date:"d/m/Y"|default:"—" }}</td></tr>
+                <tr><th scope="row">Responsable</th><td>{{ wo.assigned_to|default:"Sin asignar" }}</td></tr>
+                {% if wo.failure_description %}
+                    <tr><th scope="row">Falla reportada</th><td>{{ wo.failure_description|linebreaksbr }}</td></tr>
+                {% endif %}
+                {% if wo.work_done %}
+                    <tr><th scope="row">Trabajo realizado</th><td>{{ wo.work_done|linebreaksbr }}</td></tr>
+                {% endif %}
+                {% if wo.downtime_minutes is not None %}
+                    <tr><th scope="row">Tiempo de parada</th><td>{{ wo.downtime_minutes }} min</td></tr>
+                {% endif %}
+                {% if wo.total_cost_cop is not None %}
+                    <tr>
+                        <th scope="row">Costo</th>
+                        <td class="vt-num-cell">
+                            ${{ wo.total_cost_cop|floatformat:"0" }}
+                            <small>mano de obra ${{ wo.labor_cost_cop|default:0|floatformat:"0" }} · repuestos ${{ wo.parts_cost_cop|default:0|floatformat:"0" }}</small>
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if wo.cancel_reason %}
+                    <tr><th scope="row">Motivo de cancelación</th><td>{{ wo.cancel_reason|linebreaksbr }}</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Checklist</h2>
+        {% if items %}
+            <p class="vt-meta">
+                Copiado de <strong>{{ wo.checklist_template }}</strong> al crear la OT.
+                Editar la plantilla después no cambia nada de lo que ves aquí.
+            </p>
+            <ul class="vt-list">
+                {% for item in items %}
+                    <li class="vt-answer{% if item.is_failure %} vt-answer--falla{% endif %}">
+                        <span class="vt-row">
+                            <span class="vt-row-main">
+                                <strong>{{ item.order }}. {{ item.text }}</strong>
+                                <small>
+                                    {% if item.item_type == "numeric" and item.numeric_value is not None %}
+                                        {{ item.numeric_value|floatformat:"-2" }} {{ item.unit }} · rango {{ item.range_label }}
+                                    {% elif item.item_type == "text" %}
+                                        {{ item.note|default:"Sin respuesta" }}
+                                    {% elif item.note %}
+                                        {{ item.note }}
+                                    {% else %}
+                                        {{ item.get_item_type_display }}
+                                    {% endif %}
+                                </small>
+                            </span>
+                            <span class="vt-row-side">
+                                {% if item.result %}
+                                    <span class="vt-badge vt-badge--{% if item.result == 'ok' %}hecha{% elif item.result == 'falla' %}vencida{% else %}abierta{% endif %}">{{ item.get_result_display }}</span>
+                                {% elif item.item_type == "text" and item.note %}
+                                    <span class="vt-badge vt-badge--hecha">Respondido</span>
+                                {% else %}
+                                    <span class="vt-badge vt-badge--abierta">Sin responder</span>
+                                {% endif %}
+                            </span>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="vt-empty">
+                <p>Esta OT no lleva checklist.</p>
+                <small>Las correctivas se pueden crear sin plantilla; las preventivas copian la del plan.</small>
+            </div>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Fotos</h2>
+        {% if photos %}
+            <ul class="vt-photo-grid">
+                {% for photo in photos %}
+                    <li>
+                        <a href="{% url 'workorder_photo_download' wo.pk photo.pk %}" target="_blank" rel="noopener">
+                            <img src="{% url 'workorder_photo_download' wo.pk photo.pk %}"
+                                 alt="{{ photo.caption|default:'Foto de la OT' }}" loading="lazy">
+                        </a>
+                        {% if photo.caption %}<small>{{ photo.caption }}</small>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="vt-meta">Sin fotos adjuntas.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Historial</h2>
+        <ol class="vt-timeline">
+            {% for event in timeline %}
+                <li>
+                    <strong>{{ event.label }}</strong>
+                    <small>
+                        {{ event.when|date:"d/m/Y H:i" }}{% if event.who %} · {{ event.who }}{% endif %}
+                        {% if event.note %} · {{ event.note }}{% endif %}
+                    </small>
+                </li>
+            {% endfor %}
+        </ol>
+    </section>
+
+    <p><a href="{% url 'workorder_list' %}">&larr; Volver a las OTs</a></p>
+{% endblock %}

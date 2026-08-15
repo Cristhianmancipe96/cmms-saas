@@ -40,6 +40,13 @@
 
   /* Shape & motion */
   --vt-radius: 0.5rem;
+  /* Two tap sizes. 44px is the accessibility floor used everywhere; 48px is
+     the plant-floor size, for controls pressed with a work glove on. */
+  --vt-tap: 2.75rem;
+  --vt-tap-lg: 3rem;
+  /* The brand bar's real height. Anything that sticks below it offsets by
+     this, so the two can never drift apart. */
+  --vt-topbar-h: 3.5rem;
   --vt-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --vt-t-fast: 150ms;
 
@@ -222,6 +229,13 @@
   top: 0;
   z-index: var(--vt-z-sticky);
   border-bottom: 1px solid var(--vt-navy-700);
+  /* Pico pads `body > header` vertically, which made the bar 89px tall while
+     everything (including this file) described it as 3.5rem. The execution
+     screen's sticky machine bar has to offset itself by the real height, so
+     the bar is pinned to exactly --vt-topbar-h instead of being 33px of
+     accidental padding taller than advertised. */
+  padding-block: 0;
+  height: var(--vt-topbar-h);
 }
 
 .vt-topbar > nav {
@@ -259,7 +273,11 @@
   text-transform: uppercase;
 }
 
-/* Nav list */
+/* Nav list. Brief 05 adds two work-order destinations, and nine links do not
+   fit a 390px row. It SCROLLS rather than wraps, on purpose: wrapping makes
+   the bar two or three rows tall depending on role and viewport, and the
+   execution screen's sticky machine bar has to sit at a known offset under
+   it. A constant 3.5rem bar is worth one swipe. */
 .vt-nav {
   display: flex;
   align-items: center;
@@ -267,6 +285,16 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;         /* the bar is 3.5rem tall; a scrollbar in it
+                                    would eat a third of the tap target */
+}
+.vt-nav::-webkit-scrollbar { display: none; }
+.vt-nav li { flex-shrink: 0; }
+@media (max-width: 40rem) {
+  .vt-nav { gap: 0.875rem; }
 }
 .vt-nav li { margin: 0; padding: 0; list-style: none; display: flex; align-items: stretch; }
 .vt-nav form { margin: 0; }
@@ -594,6 +622,234 @@ a.vt-row:is(:hover, :focus-visible) {
 @media (min-width: 30rem) {
   .vt-meter button { width: auto; }
 }
+
+/* --------------------------------------------------------------------------
+   8d. Work-order execution (brief 05) — THE phone screen.
+   Scene: plant floor, bright light, one hand free, gloves on. Everything here
+   is sized for a gloved thumb (--vt-tap-lg) and reads at arm's length.
+   -------------------------------------------------------------------------- */
+
+/* Machine context, pinned under the top bar: "which machine am I on?" must
+   never require scrolling back up mid-checklist. */
+.vt-exec-head {
+  position: sticky;
+  top: var(--vt-topbar-h);
+  z-index: var(--vt-z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-background-color);
+  box-shadow: var(--pico-card-box-shadow);
+}
+.vt-exec-head-main { min-width: 0; }
+.vt-exec-head-main strong {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--vt-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vt-exec-head-main small { display: block; color: var(--vt-muted); font-size: 0.8125rem; }
+
+/* Progress: a thin meter and a sentence. The number that matters is stated in
+   words ("faltan 2 obligatorios"); the bar is only a glance-level cue. */
+.vt-progress { margin: 0 0 0.75rem; }
+.vt-progress-track {
+  height: 0.375rem;
+  border-radius: 999px;
+  /* A Pico token, not --vt-slate-200: this one is already redefined by BOTH
+     dark paths (the media query and the [data-theme] override), so the track
+     follows the theme without a rule of its own. */
+  background: var(--pico-card-sectioning-background-color);
+  overflow: hidden;
+}
+.vt-progress-fill {
+  height: 100%;
+  background: var(--vt-success-700);
+  transition: width var(--vt-t-fast) var(--vt-ease-out);
+}
+.vt-progress p { margin: 0.375rem 0 0; font-size: 0.8125rem; color: var(--vt-muted); }
+
+.vt-check-list { list-style: none; margin: 0; padding: 0; }
+.vt-check-list > li::marker { content: none; }
+.vt-check-item form { margin: 0; }
+.vt-check-item .vt-alert { margin: 0 0 0.625rem; }
+
+.vt-check-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1rem;              /* larger than list copy: read at arm's length */
+  line-height: 1.35;
+}
+/* A quiet ordinal chip instead of a bare "1." — keeps the number out of the
+   sentence so the item text starts at a consistent left edge. */
+.vt-check-order {
+  flex-shrink: 0;
+  min-width: 1.5rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--vt-radius);
+  /* Adaptive token on purpose. With the fixed --vt-slate-100 this chip stayed
+     near-white while --vt-muted flipped to its on-dark value, leaving light
+     grey text on a light chip: illegible on a phone set to system dark, which
+     is the exact device this screen is for. */
+  background: var(--pico-card-sectioning-background-color);
+  color: var(--vt-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.vt-req { color: var(--vt-danger-700); text-decoration: none; font-weight: 700; }
+
+.vt-check-hint { display: block; margin: -0.25rem 0 0.625rem; color: var(--vt-muted); font-size: 0.8125rem; }
+.vt-check-verdict { margin: 0.5rem 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--vt-danger-700); }
+
+/* Gloves: the execution segmented control is the large tap size, not the
+   44px floor, and never shrinks below a thumb's width. */
+.vt-check-item .vt-seg button { min-height: var(--vt-tap-lg); font-size: 0.9375rem; }
+.vt-seg button[aria-pressed="true"] { font-weight: 700; }
+.vt-seg button.is-save { background: var(--pico-primary-background); color: var(--pico-primary-inverse); border-color: var(--pico-primary-border); }
+.vt-seg button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Numeric answer: the value is the headline, the unit rides beside it. */
+.vt-num { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.vt-num input[type="number"] {
+  margin: 0;
+  min-height: var(--vt-tap-lg);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+.vt-num-unit { flex-shrink: 0; color: var(--vt-muted); font-size: 0.9375rem; }
+
+.vt-check-note { margin: 0 0 0.625rem; }
+/* No `color` here: Pico's own `details summary:not([role])` is more specific
+   and already themes the summary (ink when closed, muted when open) in both
+   modes. Declaring one anyway would be a line that looks like it does
+   something and does not. min-height makes the whole row a tap target. */
+.vt-check-note summary { font-size: 0.8125rem; min-height: var(--vt-tap); display: flex; align-items: center; }
+.vt-check-note summary small { margin-left: 0.35rem; }
+.vt-check-note textarea { margin-bottom: 0.5rem; }
+
+/* An answered item recedes; a failure keeps its tint so a supervisor can find
+   it while scrolling. Whole-row tint, never a coloured side border. */
+.vt-check-item.is-answered .vt-check-text { color: var(--vt-muted); }
+.vt-check-item.is-falla {
+  background: color-mix(in srgb, var(--vt-danger-700) 6%, transparent);
+  border-radius: var(--vt-radius);
+  padding-inline: 0.5rem;
+}
+
+/* The semantic colours of this screen, in dark.
+   Written twice — once for the system setting, once for the explicit toggle —
+   because those are two different states and a technician's phone is usually
+   on "automatic", never on a toggle this app has not built yet. (The badge and
+   alert rules further up answer only to [data-theme]; that predates this brief
+   and is noted for the owner rather than rewritten here.) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .vt-progress-fill { background: var(--vt-success-300); }
+  :root:not([data-theme="light"]) .vt-req { color: var(--vt-danger-300); }
+  :root:not([data-theme="light"]) .vt-check-verdict { color: var(--vt-danger-300); }
+  :root:not([data-theme="light"]) .vt-check-item.is-falla,
+  :root:not([data-theme="light"]) .vt-answer--falla {
+    background: color-mix(in srgb, var(--vt-danger-700) 16%, transparent);
+  }
+}
+[data-theme="dark"] .vt-progress-fill { background: var(--vt-success-300); }
+[data-theme="dark"] .vt-req { color: var(--vt-danger-300); }
+[data-theme="dark"] .vt-check-verdict { color: var(--vt-danger-300); }
+[data-theme="dark"] .vt-check-item.is-falla { background: color-mix(in srgb, var(--vt-danger-700) 16%, transparent); }
+
+/* The row that just came back from the server acknowledges itself. htmx adds
+   .htmx-settling to swapped content; 400ms is long enough to notice while
+   looking at your hands, short enough not to queue up behind fast taps. */
+@keyframes vt-saved-flash {
+  from { background: color-mix(in srgb, var(--vt-success-700) 18%, transparent); }
+  to   { background: transparent; }
+}
+.vt-check-item.htmx-settling { animation: vt-saved-flash 400ms var(--vt-ease-out); }
+
+/* The one primary action of the screen. */
+.vt-submit-lg { width: 100%; min-height: var(--vt-tap-lg); font-size: 1rem; }
+
+/* --------------------------------------------------------------------------
+   8e. Photo evidence grid (brief 05)
+   -------------------------------------------------------------------------- */
+.vt-photo-grid {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.5rem;
+}
+.vt-photo-grid > li { margin: 0; }
+.vt-photo-grid > li::marker { content: none; }
+.vt-photo-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--vt-radius);
+  border: 1px solid var(--pico-card-border-color);
+  display: block;
+}
+.vt-photo-grid small { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: var(--vt-muted); }
+.vt-photo-empty { grid-column: 1 / -1; color: var(--vt-muted); }
+.vt-photo-form input[type="file"] { min-height: var(--vt-tap); }
+
+/* --------------------------------------------------------------------------
+   8f. Work-order detail furniture (brief 05)
+   -------------------------------------------------------------------------- */
+
+/* The seal. Navy, like the `verificada` badge: this work order is closed
+   evidence, and the page says so once, at the top, in plain words. */
+.vt-seal {
+  padding: 0.75rem 1rem;
+  border-radius: var(--vt-radius);
+  background: var(--vt-navy-800);
+  color: var(--vt-ink-on-dark);
+  font-size: 0.9375rem;
+}
+.vt-seal::before { content: "✓ "; color: var(--vt-orange-300); font-weight: 700; }
+
+/* Recorded events, oldest first. A list, not a decorated vertical rail: the
+   information is who and when, and a rail adds pixels, not meaning. */
+.vt-timeline { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+.vt-timeline > li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+.vt-timeline > li::marker { content: none; }
+.vt-timeline strong { display: block; font-size: 0.9375rem; }
+.vt-timeline small { color: var(--vt-muted); font-size: 0.8125rem; }
+
+/* One answered checklist row on the read-only screens. */
+.vt-answer--falla { background: color-mix(in srgb, var(--vt-danger-700) 6%, transparent); }
+:where([data-theme="dark"]) .vt-answer--falla { background: color-mix(in srgb, var(--vt-danger-700) 16%, transparent); }
+
+.vt-meta { color: var(--vt-muted); font-size: 0.8125rem; }
+.vt-num-cell { font-variant-numeric: tabular-nums; }
+.vt-num-cell small { display: block; color: var(--vt-muted); font-size: 0.75rem; }
+
+.vt-group-title { display: flex; align-items: center; gap: 0.5rem; font-size: 1.125rem; }
+
+.vt-assign { display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem; }
+.vt-assign > label { width: 100%; }
+.vt-assign select { margin-bottom: 0; }
+.vt-assign button { margin: 0; width: auto; }
+
+/* Filter bars wrap instead of squeezing five controls onto one phone line. */
+.vt-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.vt-filters :is(select, button) { margin: 0; width: auto; flex: 1 1 10rem; }
+/* The label is the tap target, not the 20px box inside it. */
+.vt-check-inline { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; margin: 0; min-height: var(--vt-tap); }
+.vt-check-inline input { margin: 0; }
 
 /* --------------------------------------------------------------------------
    9. Details refinements

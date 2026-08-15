@@ -1,0 +1,28 @@
+{% comment %}
+One work order in a list. The whole row is the link (≥44px tall), the state
+badge carries the meaning and an overdue row takes a whole-row tint — never a
+coloured side border (DESIGN.md).
+
+`wo.overdue` is precomputed by services.annotate_overdue: a template cannot
+call is_overdue(today), and letting each screen re-derive "late" is how two
+screens end up disagreeing about it.
+{% endcomment %}
+<li>
+    <a class="vt-row{% if wo.overdue %} vt-row--vencido{% endif %}"
+       href="{% url 'workorder_detail' wo.pk %}">
+        <span class="vt-row-main">
+            <strong>#{{ wo.pk }} · {% if show_asset %}{{ wo.asset.code }} — {% endif %}{{ wo.asset.name }}</strong>
+            <small>
+                {{ wo.get_type_display }} ·
+                {% if wo.due_date %}{{ wo.due_date|date:"d/m/Y" }}{% else %}Sin fecha{% endif %}
+                {% if show_assignee %} · {{ wo.assigned_to|default:"Sin asignar" }}{% endif %}
+            </small>
+        </span>
+        <span class="vt-row-side">
+            {% if wo.priority == "critica" %}
+                <span class="vt-badge vt-badge--critica">Crítica</span>
+            {% endif %}
+            <span class="vt-badge vt-badge--{{ wo.badge_modifier }}">{{ wo.get_status_display }}</span>
+        </span>
+    </a>
+</li>

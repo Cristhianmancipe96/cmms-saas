@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% comment %}
+THE phone screen. Scene: plant floor, bright light, one hand free, gloves on,
+network that comes and goes.
+
+Consequences, all deliberate:
+- a sticky machine bar, so "which machine am I on?" never needs a scroll up;
+- every answer saved on its own the instant it is given (HTMX), so a dropped
+  connection costs the last tap, not the last twenty minutes;
+- the same form works with scripting off — the buttons are real submits and
+  the view redirects back here;
+- closing numbers come last, behind the checklist, because they are the part
+  the technician fills in standing still.
+{% endcomment %}
+
+{% block title %}Ejecutar OT #{{ wo.pk }}{% endblock %}
+
+{% block content %}
+    <div class="vt-exec-head">
+        <div class="vt-exec-head-main">
+            <strong>{{ wo.asset.code }} — {{ wo.asset.name }}</strong>
+            <small>OT #{{ wo.pk }} · {{ wo.get_type_display }} · {{ wo.asset.site.name }}</small>
+        </div>
+        <span class="vt-badge vt-badge--{{ wo.badge_modifier }}">{{ wo.get_status_display }}</span>
+    </div>
+
+    {% if wo.failure_description %}
+        <p class="vt-alert vt-alert--warning"><strong>Falla reportada:</strong> {{ wo.failure_description }}</p>
+    {% endif %}
+
+    {% if not is_assignee %}
+        <p class="vt-alert vt-alert--info" role="status">
+            {% if wo.assigned_to %}
+                Estás viendo la ejecución de {{ wo.assigned_to }}. Solo esa persona puede
+                responder el checklist.
+            {% else %}
+                Esta OT todavía no tiene responsable. Asígnala para que alguien pueda ejecutarla.
+            {% endif %}
+        </p>
+    {% elif wo.status != "en_progreso" %}
+        <p class="vt-alert vt-alert--info" role="status">
+            {% if wo.status == "asignada" %}
+                Inicia el trabajo para empezar a responder el checklist.
+            {% else %}
+                Esta OT ya no está en progreso: el checklist queda como está.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {% if "start" in actions %}
+        <form method="post" action="{% url 'workorder_start' wo.pk %}" class="vt-actions">
+            {% csrf_token %}
+            <button type="submit">Iniciar trabajo</button>
+        </form>
+    {% endif %}
+
+    <section>
+        <h2>Checklist</h2>
+        {% if items %}
+            {% include "workorders/_checklist_progress.html" %}
+            <ul class="vt-check-list">
+                {% for item in items %}
+                    {% include "workorders/_checklist_item.html" with item=item wo=wo can_answer=can_answer %}
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="vt-empty">
+                <p>Esta OT no lleva checklist.</p>
+                <small>Describe el trabajo realizado abajo y adjunta fotos como evidencia.</small>
+            </div>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Fotos</h2>
+        <ul class="vt-photo-grid">
+            {% for photo in photos %}
+                <li>
+                    <a href="{% url 'workorder_photo_download' wo.pk photo.pk %}" target="_blank" rel="noopener">
+                        <img src="{% url 'workorder_photo_download' wo.pk photo.pk %}"
+                             alt="{{ photo.caption|default:'Foto de la OT' }}" loading="lazy">
+                    </a>
+                    {% if photo.caption %}<small>{{ photo.caption }}</small>{% endif %}
+                </li>
+            {% empty %}
+                {% if not can_answer %}
+                    <li class="vt-photo-empty"><small>Sin fotos adjuntas.</small></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+        {% if can_answer %}
+            <form method="post" action="{% url 'workorder_photo_upload' wo.pk %}"
+                  enctype="multipart/form-data" class="vt-photo-form">
+                {% csrf_token %}
+                {% include "maintenance/_field.html" with field=photo_form.image %}
+                {% include "maintenance/_field.html" with field=photo_form.caption %}
+                <button type="submit" class="secondary">Adjuntar foto</button>
+            </form>
+        {% endif %}
+    </section>
+
+    {% if can_answer %}
+        <section>
+            <h2>Cierre</h2>
+            <form method="post" action="{% url 'workorder_complete' wo.pk %}">
+                {% csrf_token %}
+                <fieldset class="vt-fieldset">
+                    <legend>Qué se hizo</legend>
+                    {% include "maintenance/_field.html" with field=complete_form.work_done %}
+                    {% include "maintenance/_field.html" with field=complete_form.downtime_minutes %}
+                    {% if complete_form.meter_reading_hours %}
+                        {% include "maintenance/_field.html" with field=complete_form.meter_reading_hours %}
+                    {% endif %}
+                </fieldset>
+                <fieldset class="vt-fieldset">
+                    <legend>Costos (COP)</legend>
+                    {% include "maintenance/_field.html" with field=complete_form.labor_cost_cop %}
+                    {% include "maintenance/_field.html" with field=complete_form.parts_cost_cop %}
+                </fieldset>
+
+                {% if pending_required %}
+                    <p class="vt-alert vt-alert--warning" role="status">
+                        Falta{{ pending_required|pluralize:"n" }} {{ pending_required }}
+                        ítem{{ pending_required|pluralize:"s" }}
+                        obligatorio{{ pending_required|pluralize:"s" }} por responder.
+                    </p>
+                {% endif %}
+                <button type="submit" class="vt-submit-lg">Terminar OT</button>
+            </form>
+        </section>
+    {% endif %}
+
+    <p><a href="{% url 'workorder_detail' wo.pk %}">&larr; Ver la ficha de la OT</a></p>
+{% endblock %}

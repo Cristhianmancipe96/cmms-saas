@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Reportar falla · {{ asset.name }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Reportar una falla</h1>
+        <p>{{ asset.code }} — {{ asset.name }} · {{ asset.site.name }}</p>
+    </hgroup>
+
+    <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <p class="vt-alert vt-alert--error" role="alert">{{ form.non_field_errors|join:" " }}</p>
+        {% endif %}
+        {% for field in form %}
+            {% include "maintenance/_field.html" with field=field %}
+        {% endfor %}
+        <div class="vt-actions">
+            <button type="submit">Crear OT correctiva</button>
+            <a href="{% url 'asset_detail' asset.pk %}" role="button" class="secondary outline">Volver al equipo</a>
+        </div>
+    </form>
+{% endblock %}

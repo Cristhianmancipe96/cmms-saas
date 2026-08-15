@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% comment %}
+Verifying is the only irreversible action in the product: it seals the row.
+So it gets a screen of its own that shows what is being sealed, instead of a
+button sitting next to «Cancelar OT» waiting to be mis-tapped.
+{% endcomment %}
+
+{% block title %}Verificar OT #{{ wo.pk }}{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Verificar OT #{{ wo.pk }}</h1>
+        <p>{{ wo.asset.code }} — {{ wo.asset.name }}</p>
+    </hgroup>
+
+    <p class="vt-alert vt-alert--warning">
+        Al verificar, la OT queda sellada como evidencia: ni tú ni nadie podrá
+        modificar sus datos, su checklist ni sus fotos.
+    </p>
+
+    <table>
+        <tbody>
+            <tr><th scope="row">Ejecutada por</th><td>{{ wo.completed_by|default:"—" }}</td></tr>
+            <tr><th scope="row">Terminada el</th><td>{{ wo.finished_at|date:"d/m/Y H:i" }}</td></tr>
+            <tr><th scope="row">Trabajo realizado</th><td>{{ wo.work_done|default:"—"|linebreaksbr }}</td></tr>
+            <tr><th scope="row">Checklist</th><td>{{ items|length }} ítem{{ items|length|pluralize:"s" }}</td></tr>
+            <tr><th scope="row">Fotos</th><td>{{ photos|length }}</td></tr>
+        </tbody>
+    </table>
+
+    <form method="post" class="vt-actions">
+        {% csrf_token %}
+        <button type="submit">Verificar y sellar</button>
+        <a href="{% url 'workorder_detail' wo.pk %}" role="button" class="secondary outline">Volver</a>
+    </form>
+{% endblock %}

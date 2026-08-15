@@ -1,0 +1,77 @@
+{% comment %}
+One checklist item = one form = one round trip. `hx-target` is this <li> and
+the swap is outerHTML, so the row that comes back carries its own new state;
+the progress line above updates through an out-of-band swap in the same
+response, which is what stops the counter and the rows from disagreeing.
+
+Without JavaScript the identical form posts normally and the view redirects
+back to this screen. Nothing here depends on htmx having loaded.
+
+The observación textarea lives inside the same form as the answer buttons, so
+a note travels with the tap that saves the answer — one round trip, not two.
+{% endcomment %}
+<li class="vt-check-item{% if item.is_answered %} is-answered{% endif %}{% if item.is_failure %} is-falla{% endif %}"
+    id="item-{{ item.pk }}">
+    <form method="post"
+          action="{% url 'workorder_item_save' wo.pk item.pk %}"
+          hx-post="{% url 'workorder_item_save' wo.pk item.pk %}"
+          hx-target="#item-{{ item.pk }}"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+
+        <p class="vt-check-text">
+            <span class="vt-check-order">{{ item.order }}</span>
+            {{ item.text }}{% if item.required %}<abbr class="vt-req" title="Obligatorio">*</abbr>{% endif %}
+        </p>
+
+        {% if error %}
+            <p class="vt-alert vt-alert--error" role="alert">{{ error }}</p>
+        {% endif %}
+
+        {% if item.item_type == "numeric" %}
+            <div class="vt-num">
+                <label class="vt-sr-only" for="valor-{{ item.pk }}">Valor medido</label>
+                <input type="number" step="0.01" inputmode="decimal"
+                       id="valor-{{ item.pk }}" name="numeric_value"
+                       value="{{ item.numeric_value|floatformat:'-2' }}"
+                       autocomplete="off"
+                       {% if not can_answer %}disabled{% endif %}>
+                <span class="vt-num-unit">{{ item.unit }}</span>
+            </div>
+            <small class="vt-check-hint">Rango esperado: {{ item.range_label }}</small>
+            {% include "workorders/_checklist_note.html" with item=item can_answer=can_answer %}
+            <div class="vt-seg">
+                <button type="submit" name="result" value="" class="is-save"
+                        {% if not can_answer %}disabled{% endif %}>Guardar</button>
+                <button type="submit" name="result" value="na" class="is-na"
+                        aria-pressed="{% if item.result == 'na' %}true{% else %}false{% endif %}"
+                        {% if not can_answer %}disabled{% endif %}>N/A</button>
+            </div>
+            {% if item.is_failure %}
+                <p class="vt-check-verdict">Fuera del rango esperado: queda registrado como falla.</p>
+            {% endif %}
+
+        {% elif item.item_type == "text" %}
+            <label class="vt-sr-only" for="nota-{{ item.pk }}">Respuesta</label>
+            <textarea id="nota-{{ item.pk }}" name="note" rows="3"
+                      {% if not can_answer %}disabled{% endif %}>{{ item.note }}</textarea>
+            <div class="vt-seg">
+                <button type="submit" class="is-save" {% if not can_answer %}disabled{% endif %}>Guardar</button>
+            </div>
+
+        {% else %}
+            {% include "workorders/_checklist_note.html" with item=item can_answer=can_answer %}
+            <div class="vt-seg" role="group" aria-label="Resultado">
+                <button type="submit" name="result" value="ok" class="is-ok"
+                        aria-pressed="{% if item.result == 'ok' %}true{% else %}false{% endif %}"
+                        {% if not can_answer %}disabled{% endif %}>OK</button>
+                <button type="submit" name="result" value="falla" class="is-fail"
+                        aria-pressed="{% if item.result == 'falla' %}true{% else %}false{% endif %}"
+                        {% if not can_answer %}disabled{% endif %}>Falla</button>
+                <button type="submit" name="result" value="na" class="is-na"
+                        aria-pressed="{% if item.result == 'na' %}true{% else %}false{% endif %}"
+                        {% if not can_answer %}disabled{% endif %}>N/A</button>
+            </div>
+        {% endif %}
+    </form>
+</li>

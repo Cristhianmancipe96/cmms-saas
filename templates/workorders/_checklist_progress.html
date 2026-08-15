@@ -1,0 +1,17 @@
+{% comment %}
+How much is left, in one line and one bar. Swapped out-of-band by every item
+save, so it can never lag behind the rows it summarises.
+
+Not a hero metric: a thin meter and a sentence. The number that matters on
+this screen is "how many obligatorios faltan", and it is stated in words.
+{% endcomment %}
+<div id="checklist-progress" class="vt-progress"{% if oob %} hx-swap-oob="true"{% endif %}>
+    <div class="vt-progress-track" role="presentation">
+        <div class="vt-progress-fill" style="width: {{ answered_percent }}%"></div>
+    </div>
+    <p role="status">
+        {{ answered_count }} de {{ items_total }} respondido{{ items_total|pluralize:"s" }}{% if pending_required %} ·
+        falta{{ pending_required|pluralize:"n" }} {{ pending_required }} obligatorio{{ pending_required|pluralize:"s" }}{% else %}
+        · sin obligatorios pendientes{% endif %}
+    </p>
+</div>

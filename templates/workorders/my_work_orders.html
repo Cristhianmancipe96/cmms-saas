@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% comment %}
+The technician's home. Three headings instead of one date-sorted list,
+because the question asked at 7am is "what am I late on?" — a list that
+requires reading dates to answer it is making the reader do the work.
+{% endcomment %}
+
+{% block title %}Mis OTs{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Mis OTs</h1>
+        <p>
+            {% if total %}
+                {{ total }} orden{{ total|pluralize:"es" }} abierta{{ total|pluralize }} a tu nombre.
+            {% else %}
+                Nada pendiente a tu nombre.
+            {% endif %}
+        </p>
+    </hgroup>
+
+    {% if overdue %}
+        <section>
+            <h2 class="vt-group-title">Vencidas <span class="vt-badge vt-badge--vencida">{{ overdue|length }}</span></h2>
+            <ul class="vt-list">
+                {% for wo in overdue %}
+                    {% include "workorders/_work_order_row.html" with wo=wo show_asset=True %}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if due_today %}
+        <section>
+            <h2 class="vt-group-title">Para hoy <span class="vt-badge vt-badge--asignada">{{ due_today|length }}</span></h2>
+            <ul class="vt-list">
+                {% for wo in due_today %}
+                    {% include "workorders/_work_order_row.html" with wo=wo show_asset=True %}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if upcoming %}
+        <section>
+            <h2 class="vt-group-title">Próximas</h2>
+            <ul class="vt-list">
+                {% for wo in upcoming %}
+                    {% include "workorders/_work_order_row.html" with wo=wo show_asset=True %}
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if not total %}
+        <div class="vt-empty">
+            <p>No tienes órdenes de trabajo asignadas.</p>
+            <small>Cuando un supervisor te asigne una, aparecerá aquí.</small>
+            <a href="{% url 'workorder_list' %}" role="button" class="secondary outline">Ver todas las OTs</a>
+        </div>
+    {% endif %}
+{% endblock %}

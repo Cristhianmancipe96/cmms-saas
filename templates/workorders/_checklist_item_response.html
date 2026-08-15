@@ -1,0 +1,8 @@
+{% comment %}
+The HTMX answer to one item save: the row itself (swapped into #item-N) plus
+an out-of-band copy of the progress line. Two fragments, one response, one
+round trip — the counter cannot drift from the rows because it is never
+fetched separately.
+{% endcomment %}
+{% include "workorders/_checklist_item.html" with item=item wo=wo can_answer=can_answer error=error %}
+{% include "workorders/_checklist_progress.html" with oob=True %}

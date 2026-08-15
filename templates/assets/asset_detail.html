@@ -118,8 +118,27 @@
     </section>
 
     <section>
-        <h2>Historial</h2>
-        <p>Disponible cuando se active el módulo de órdenes de trabajo (próximamente).</p>
+        <h2>Órdenes de trabajo</h2>
+        <ul class="vt-list">
+            {% for wo in work_orders %}
+                {% include "workorders/_work_order_row.html" with wo=wo show_asset=False show_assignee=True %}
+            {% empty %}
+                <li>
+                    <div class="vt-empty">
+                        <p>Este equipo no tiene órdenes de trabajo.</p>
+                        <small>Las preventivas las crea el programador a partir de los planes; una correctiva se reporta cuando algo falla.</small>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="vt-actions">
+            {% if can_report_failure %}
+                <a href="{% url 'workorder_corrective_create' asset.pk %}" role="button">Reportar falla</a>
+            {% endif %}
+            {% if work_orders %}
+                <a href="{% url 'workorder_list' %}?equipo={{ asset.pk }}" role="button" class="secondary outline">Ver todas</a>
+            {% endif %}
+        </div>
     </section>
 
     <p><a href="{% url 'asset_list' %}">&larr; Volver a equipos</a></p>

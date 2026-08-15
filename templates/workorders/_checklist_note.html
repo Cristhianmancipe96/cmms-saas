@@ -1,0 +1,12 @@
+{% comment %}
+The optional observación, collapsed by default so the common case (tap OK,
+move on) stays a single target. Open when there is already something to read.
+It carries no button of its own: it is submitted by whichever answer button
+the technician presses, which is why the summary says so.
+{% endcomment %}
+<details class="vt-check-note"{% if item.note %} open{% endif %}>
+    <summary>Observación <small>(se guarda con la respuesta)</small></summary>
+    <label class="vt-sr-only" for="nota-{{ item.pk }}">Observación</label>
+    <textarea id="nota-{{ item.pk }}" name="note" rows="2"
+              {% if not can_answer %}disabled{% endif %}>{{ item.note }}</textarea>
+</details>

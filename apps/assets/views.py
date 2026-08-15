@@ -19,9 +19,13 @@ from apps.assets.models import Asset, AssetCategory, AssetDocument, AssetHasDocu
 from apps.core.rbac import RoleRequiredMixin, deny, role_required
 from apps.maintenance import services as maintenance_services
 from apps.maintenance import views as maintenance_views
+from apps.workorders import services as workorder_services
+from apps.workorders.models import WorkOrder
 
 ALL_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR, User.Role.TECHNICIAN, User.Role.STAFF)
 MANAGER_ROLES = (User.Role.ADMIN, User.Role.SUPERVISOR)
+
+RECENT_WORK_ORDERS = 5
 
 
 # --- Categories -------------------------------------------------------------
@@ -108,6 +112,13 @@ class AssetDetailView(RoleRequiredMixin, DetailView):
             self.request.user.is_platform_admin or self.request.user.role in MANAGER_ROLES
         )
         context.update(maintenance_views.meter_panel_context(asset, user=self.request.user))
+        # Brief 05: the equipment record is where a breakdown gets reported and
+        # where its work-order history is read. Capped at the most recent few —
+        # the full list, filtered by this asset, is one link away.
+        context["work_orders"] = workorder_services.annotate_overdue(
+            WorkOrder.objects.select_related("assigned_to").filter(asset=asset)[:RECENT_WORK_ORDERS]
+        )
+        context["can_report_failure"] = workorder_services.may_report_failure(self.request.user)
         return context
 
 
@@ -229,7 +240,7 @@ def asset_photo_download(request, pk):
     asset = get_object_or_404(Asset, pk=pk)
     if not asset.main_photo:
         raise Http404
-    return _serve_file(asset.main_photo)
+    return serve_file(asset.main_photo)
 
 
 @role_required(*ALL_ROLES)
@@ -240,10 +251,19 @@ def asset_document_download(request, pk):
     extension = os.path.splitext(document.file.name)[1]
     safe_base = "".join(c for c in document.name if c.isalnum() or c in " ._-").strip()
     download_name = f"{safe_base or 'documento'}{extension}"
-    return _serve_file(document.file, download_name=download_name)
+    return serve_file(document.file, download_name=download_name)
 
 
-def _serve_file(field_file, download_name=None):
+def serve_file(field_file, download_name=None):
+    """Stream a stored file to an already-authorized caller.
+
+    Public on purpose, like `maintenance.views.meter_panel_context`: work-order
+    photos (brief 05) are tenant data under exactly the same rule — never a
+    guessable `/media/` URL — and a second copy of the "open it, guess the
+    type, refuse if missing" logic is a second place for the two to drift.
+    The *authorization* decision is not here; it stays in each calling view,
+    next to the object it is about.
+    """
     try:
         handle = field_file.open("rb")
     except (FileNotFoundError, ValidationError) as error:
