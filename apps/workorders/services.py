@@ -324,11 +324,28 @@ def record_item_result(
     Per-item rather than one big form on purpose: a technician on a plant
     floor loses the network mid-inspection, and half a checklist already
     stored beats a whole one lost.
+
+    Decided from the work order re-read under `select_for_update`, exactly
+    like `transition`, and against the same row — which is what makes the two
+    serialize. The caller's copy of the work order was loaded when the page
+    was rendered, possibly minutes ago on a bad connection; without the lock,
+    an answer sent a millisecond after `complete` read the checklist would
+    pass a stale `en_progreso` check and land on a work order already
+    reported as finished.
     """
     _assert_item_belongs(work_order, item)
-    if work_order.status != WorkOrder.Status.EN_PROGRESO:
+
+    locked = WorkOrder.objects.unscoped().select_for_update().filter(pk=work_order.pk).first()
+    if locked is None:
+        raise NotAllowed("Esa OT ya no existe.")
+    # The read above is unscoped so this function also works outside a
+    # request; tenant isolation is restored here, explicitly, the same way
+    # `transition` does it.
+    if not user.is_platform_admin and locked.company_id != user.company_id:
+        raise NotAllowed("Esa OT no pertenece a tu empresa.")
+    if locked.status != WorkOrder.Status.EN_PROGRESO:
         raise NotAllowed("Solo se puede llenar el checklist de una OT en progreso.")
-    if work_order.assigned_to_id != user.pk:
+    if locked.assigned_to_id != user.pk:
         raise NotAllowed("Solo el técnico asignado puede llenar este checklist.")
 
     item.note = note.strip()

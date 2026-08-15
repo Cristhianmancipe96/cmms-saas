@@ -9,7 +9,7 @@ Execute in order — each brief depends on all previous ones unless noted.
 - [x] 03 — Checklist templates with versioning
 - [x] 04 — Maintenance plans and idempotent scheduler
 - [x] 05 — Work orders: state machine and mobile execution
-- [ ] 06 — QR flow: live asset view by role
+- [x] 06 — QR flow: live asset view by role
 - [ ] 07 — PDFs (asset record, work-order report) and email
 - [ ] 08 — Failure requests, audit log, n8n webhook stub
 - [ ] 09 — Dashboard and KPIs in raw SQL

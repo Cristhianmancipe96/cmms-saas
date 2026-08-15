@@ -418,6 +418,34 @@ class RecordItemResultGuardTests(TestCase):
                 self.work_order, foreign_item, user=self.technician, result="ok"
             )
 
+    def test_the_stored_status_decides_not_the_callers_stale_copy(self):
+        """Carry-over 05-P3, the reason for the `select_for_update` re-read.
+
+        The caller's work order was loaded when the page was rendered. If
+        someone completed it since — the assignee's own second phone, a
+        double-tapped «Terminar» — an answer sent now must not land on a work
+        order that is already reported as finished.
+        """
+        WorkOrder.objects.unscoped().filter(pk=self.work_order.pk).update(
+            status=WorkOrder.Status.TERMINADA
+        )
+
+        with pytest.raises(services.NotAllowed):
+            services.record_item_result(
+                self.work_order, self.item, user=self.technician, result="ok"
+            )
+
+    def test_a_user_from_another_company_is_refused(self):
+        """Tenant isolation restored explicitly, like `transition` does it:
+        the row is now re-read unscoped, so the question the scoped manager
+        used to answer has to be asked here."""
+        outsider = TechnicianUserFactory(company=CompanyFactory())
+
+        with pytest.raises(services.NotAllowed):
+            services.record_item_result(
+                self.work_order, self.item, user=outsider, result="ok"
+            )
+
     def test_a_nonsense_result_is_refused(self):
         with pytest.raises(services.WorkOrderError):
             services.record_item_result(

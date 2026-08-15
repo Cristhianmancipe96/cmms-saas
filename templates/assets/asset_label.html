@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% comment %}
+The sticker that goes on the machine. Everything outside `.vt-label` carries
+`.vt-noprint` and disappears when the page is printed, so what comes out of
+the printer is the label and nothing else.
+
+No print button: this brief ships without JavaScript, and a browser's own
+print command is one keystroke away. What the operator actually needs before
+pressing it is the paper settings below — a label printed at 94% "fit to
+page" is a label whose QR is the wrong size.
+{% endcomment %}
+
+{% block title %}Etiqueta de {{ asset.code }}{% endblock %}
+
+{% block content %}
+    <hgroup class="vt-noprint">
+        <h1>Etiqueta QR</h1>
+        <p>{{ asset.code }} — {{ asset.name }}</p>
+    </hgroup>
+
+    {% if scan_url_is_local %}
+        <p class="vt-alert vt-alert--warning vt-noprint" role="alert">
+            <strong>No imprimas todavía.</strong> El código apunta a
+            <code>{{ scan_url }}</code>, una dirección que solo existe en este computador:
+            pegado en la máquina no abriría nada. Configura <code>SITE_URL</code> con la
+            dirección pública de la app antes de imprimir.
+        </p>
+    {% endif %}
+
+    <div class="vt-label">
+        {{ qr_svg }}
+        <div class="vt-label-text">
+            <p class="vt-label-code">{{ asset.code }}</p>
+            <p class="vt-label-name">{{ asset.name }}</p>
+            <p class="vt-label-org">{{ asset.company.name }}</p>
+            <p class="vt-label-url">{{ scan_url }}</p>
+        </div>
+    </div>
+
+    <div class="vt-noprint">
+        <p>
+            Imprime esta página en papel adhesivo y pégala en un lugar visible y limpio
+            de la máquina. Al escanearla, quien tenga sesión ve la hoja de vida al día.
+        </p>
+        <details>
+            <summary>Antes de imprimir</summary>
+            <ul>
+                <li>Escala <strong>100%</strong>, nunca «ajustar a la página»: la escala cambia el tamaño del código.</li>
+                <li>Sin encabezados ni pies de página del navegador.</li>
+                <li>La etiqueta mide 70 × 40 mm; el código, 30 mm.</li>
+                <li>Si el equipo trabaja con grasa o vapor, protégela con cinta transparente encima.</li>
+            </ul>
+        </details>
+        <p><a href="{% url 'asset_detail' asset.pk %}">&larr; Volver al equipo</a></p>
+    </div>
+{% endblock %}

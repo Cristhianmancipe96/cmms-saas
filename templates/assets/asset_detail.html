@@ -10,13 +10,17 @@
     </h1>
 
     {% if user.role == "admin" or user.role == "supervisor" %}
-        <p>
+        {# .vt-actions, not a bare <p>: DESIGN.md — Pico's inline-block buttons
+           overflow a 390px viewport without it, and this row just grew a
+           fourth button. #}
+        <div class="vt-actions">
             <a href="{% url 'asset_update' asset.pk %}" role="button">Editar</a>
+            <a href="{% url 'asset_label' asset.pk %}" role="button" class="secondary">Etiqueta QR</a>
             {% if asset.status != "dado_de_baja" %}
                 <a href="{% url 'asset_baja' asset.pk %}" role="button" class="secondary">Dar de baja</a>
             {% endif %}
             <a href="{% url 'asset_delete' asset.pk %}" role="button" class="secondary">Eliminar</a>
-        </p>
+        </div>
     {% endif %}
 
     {% if asset.status == "dado_de_baja" and asset.baja_reason %}

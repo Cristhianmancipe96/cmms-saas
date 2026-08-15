@@ -19,6 +19,13 @@ SECRET_KEY = env.str("SECRET_KEY")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
+# The public base URL printed into every QR label (brief 06). Configuration,
+# not `request.build_absolute_uri`: a sticker glued to a machine outlives the
+# request that generated it, and must point at the deployment the plant
+# actually uses — not at whichever host (proxy, LAN IP, localhost) happened to
+# render the label sheet.
+SITE_URL = env.str("SITE_URL", default="http://localhost:8000")
+
 
 # Application definition
 

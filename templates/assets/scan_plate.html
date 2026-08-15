@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% comment %}
+What a QR scan shows to someone with no session — and to a logged-in user
+from another company, byte for byte the same page, so a login can never be
+used to find out whose machine a UUID belongs to.
+
+The context this template receives is `code` and `name`. There is no `asset`
+object in it, on purpose: a template can only leak what it was handed, so the
+company, the status, the history and every pk-bearing URL are out of reach
+here by construction, not by everyone remembering not to type them.
+
+Sparse is the design, not a gap in it — see .vt-plate in vectron.css.
+{% endcomment %}
+
+{% block title %}{{ code }}{% endblock %}
+
+{% block content %}
+    <div class="vt-plate">
+        <p class="vt-plate-code">{{ code }}</p>
+        <p class="vt-plate-name">{{ name }}</p>
+    </div>
+
+    <p class="vt-plate-note">
+        Esta es la placa del equipo. La hoja de vida — estado, mantenimientos,
+        órdenes de trabajo e historial — solo se ve con sesión iniciada.
+    </p>
+
+    <div class="vt-actions">
+        <a href="{% url 'login' %}?next={{ request.path|urlencode }}" role="button">Iniciar sesión</a>
+    </div>
+{% endblock %}

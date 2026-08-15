@@ -5,9 +5,12 @@ from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 from django.views.generic import DetailView, ListView
 
 from apps.accounts.models import Site, User
+from apps.assets import qr
+from apps.assets import services as asset_services
 from apps.assets.forms import (
     AssetBajaForm,
     AssetCategoryForm,
@@ -230,6 +233,80 @@ def asset_document_upload(request, pk):
 def asset_spec_row(request):
     """HTMX fragment: one empty specs key/value row, appended client-side."""
     return render(request, "assets/_specs_row.html", {"key": "", "value": ""})
+
+
+# --- The QR flow (brief 06) -------------------------------------------------
+
+
+@require_GET
+def asset_scan(request, qr_uuid):
+    """`/e/<qr_uuid>` — the sticker on the machine, resolved for whoever scanned it.
+
+    The only view in this product without a `role_required` decorator, and
+    the permission decision is more explicit for it, not less: it is
+    `asset_services.scan_audience`, one function, called on the line below
+    the lookup. Anonymous is a legitimate audience here — a QR glued to a
+    machine is opened by people who are not logged in, and refusing them
+    outright would make the label useless — but "legitimate" buys them the
+    plate and nothing more.
+
+    `require_GET` is the second half of the brief's rule that no write ever
+    starts from a scan: not "there is no form on the page", but "this URL
+    does not accept a POST at all".
+
+    `.unscoped()` is required, not convenient: an anonymous request sets no
+    tenant contextvar, so the scoped manager would match nothing and every
+    scan would 404. The tenancy question the manager normally answers is
+    asked one line later instead, explicitly, by `scan_audience`.
+    """
+    asset = get_object_or_404(
+        Asset.objects.unscoped().select_related("site", "category"), qr_uuid=qr_uuid
+    )
+    audience = asset_services.scan_audience(request.user, asset)
+
+    if audience == asset_services.PLATE:
+        # Note what is NOT in this context: no asset object. A template can
+        # only render what it was handed, so the plate cannot leak the
+        # company, the status or a pk-bearing URL by way of some later edit
+        # adding `{{ asset.something }}` — there is no `asset` to reach for.
+        return render(
+            request,
+            "assets/scan_plate.html",
+            {"code": asset.code, "name": asset.name},
+        )
+
+    return render(
+        request,
+        "assets/scan.html",
+        {
+            "asset": asset,
+            "audience": audience,
+            **asset_services.scan_context(asset, audience, request.user),
+        },
+    )
+
+
+@role_required(*MANAGER_ROLES)
+def asset_label(request, pk):
+    """The printable sticker. Supervisors and admins only.
+
+    Whoever prints a label decides what a machine answers to for the rest of
+    its life, so this sits with the people who own the equipment list — not
+    with everyone who can read it.
+    """
+    # `company` because the label prints the customer's own name on it.
+    asset = get_object_or_404(Asset.objects.select_related("site", "company"), pk=pk)
+    scan_url = qr.asset_scan_url(asset)
+    return render(
+        request,
+        "assets/asset_label.html",
+        {
+            "asset": asset,
+            "scan_url": scan_url,
+            "qr_svg": qr.qr_svg(scan_url),
+            "scan_url_is_local": qr.is_local_url(scan_url),
+        },
+    )
 
 
 # --- Gated file downloads (CLAUDE.md security rule #1) ----------------------

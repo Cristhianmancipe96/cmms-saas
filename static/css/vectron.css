@@ -852,6 +852,128 @@ a.vt-row:is(:hover, :focus-visible) {
 .vt-check-inline input { margin: 0; }
 
 /* --------------------------------------------------------------------------
+   8g. The QR scan screens (brief 06)
+   -------------------------------------------------------------------------- */
+
+/* The plate — what a scan shows to someone with no session, and to anyone
+   outside the machine's company.
+
+   The screen's job is to say almost nothing, and that refusal has to read as
+   deliberate rather than broken. So it borrows the object it stands in for:
+   the engraved nameplate riveted to the machine's own frame. A bordered
+   plate, an inner rim, the code cut into it, the name underneath. Sparse by
+   design. Everything else on this screen is one sentence explaining what a
+   session would add, and one button to start one. */
+.vt-plate {
+  margin: 1.5rem 0 1rem;
+  padding: 2.25rem 1.25rem;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-background-color);
+  /* The rim. An outline rather than a second element: one line of CSS, no
+     markup, and it cannot fall out of sync with the border it sits inside.
+     Mixed from --vt-ink rather than reusing a border token, because the two
+     border tokens resolve to the same colour in both themes — a rim painted
+     with one of them would be a line that renders and cannot be seen. */
+  outline: 1px solid color-mix(in srgb, var(--vt-ink) 18%, transparent);
+  outline-offset: -6px;
+  text-align: center;
+}
+.vt-plate-code {
+  margin: 0;
+  font-size: clamp(2rem, 11vw, 3rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--vt-ink);
+  /* Internal codes are whatever the customer already paints on the machine.
+     A long one wraps; it never widens the plate past a 390px screen. */
+  overflow-wrap: anywhere;
+}
+.vt-plate-name { margin: 0.625rem 0 0; font-size: 1.0625rem; color: var(--vt-muted); }
+.vt-plate-note { color: var(--vt-muted); font-size: 0.875rem; }
+
+/* The live view's identity block. Deliberately the same "CÓDIGO — Nombre"
+   lockup as the execution screen's sticky bar (.vt-exec-head): a technician
+   who scans and then executes must recognise the machine, not re-read it. */
+.vt-scan-id { margin-bottom: 0.75rem; }
+.vt-scan-id h1 { margin-bottom: 0.25rem; font-size: 1.5rem; line-height: 1.15; }
+.vt-scan-code { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.vt-scan-name { display: block; margin-top: 0.15rem; font-size: 1.125rem; font-weight: 500; color: var(--vt-muted); }
+.vt-scan-meta { margin: 0; color: var(--vt-muted); font-size: 0.875rem; }
+.vt-scan-badges { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0.75rem 0 1.25rem; }
+
+/* The technician's row goes straight to the execution screen, because that
+   is why they scanned. One 48px target for the whole row beats a row plus a
+   fingernail-sized button; the orange chip is the affordance, not the
+   target. */
+.vt-row--go { min-height: var(--vt-tap-lg); }
+.vt-go {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--vt-radius);
+  background: var(--vt-orange-500);
+  color: var(--vt-navy-950);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.vt-go::after { content: " →"; }
+
+/* --------------------------------------------------------------------------
+   8h. The printable QR label (brief 06)
+   -------------------------------------------------------------------------- */
+
+/* A physical object, so it is sized in millimetres. 70 × 40 mm is a stock
+   adhesive label and leaves the QR at 30 mm — scannable from roughly arm's
+   length, which is as close as anyone should get to a machine that is still
+   running.
+
+   Black on white in both themes, on screen as well as on paper: this is a
+   preview of ink, and a dark-mode "preview" would be a picture of something
+   the printer will never produce. */
+.vt-label {
+  box-sizing: border-box;
+  width: 70mm;
+  max-width: 100%;
+  min-height: 40mm;
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  padding: 4mm;
+  border: 0.4mm solid #000000;
+  border-radius: 2mm;
+  background: #FFFFFF;
+  color: #000000;
+}
+.vt-qr { width: 30mm; height: 30mm; flex-shrink: 0; display: block; }
+.vt-label-text { min-width: 0; }
+.vt-label-code {
+  margin: 0;
+  font-size: 6mm;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.vt-label-name { margin: 1mm 0 0; font-size: 3.4mm; line-height: 1.25; }
+.vt-label-org { margin: 2mm 0 0; font-size: 2.6mm; line-height: 1.2; }
+/* The typed fallback for a label too greasy to scan. Small enough to stay out
+   of the way, large enough to read with the sticker in your hand. */
+.vt-label-url { margin: 0.5mm 0 0; font-size: 2.4mm; line-height: 1.2; word-break: break-all; }
+
+@media print {
+  /* Everything that is app chrome, not label. */
+  .vt-topbar,
+  .vt-noprint { display: none !important; }
+  @page { margin: 8mm; }
+  body { background: #FFFFFF; }
+  main.container { max-width: none; margin: 0; padding: 0; }
+  .vt-label { break-inside: avoid; }
+}
+
+/* --------------------------------------------------------------------------
    9. Details refinements
    -------------------------------------------------------------------------- */
 h1, h2, h3 { text-wrap: balance; }

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% comment %}
+The live machine record, rendered for whoever scanned the sticker.
+
+One template with role-conditional sections, as the brief asks, and the
+condition is always `audience` — never `user.role`. The audience was decided
+once, in apps/assets/services.scan_audience, together with the tenant check;
+a template that re-derived it from the role would be a second copy of the
+rule, free to disagree with the first about who may see a machine.
+
+Mobile-first without apology: this is the screen that opens on a phone held
+in front of a stopped machine.
+{% endcomment %}
+
+{% block title %}{{ asset.code }}{% endblock %}
+
+{% block content %}
+    <hgroup class="vt-scan-id">
+        <h1>
+            <span class="vt-scan-code">{{ asset.code }}</span>
+            <span class="vt-scan-name">{{ asset.name }}</span>
+        </h1>
+        <p class="vt-scan-meta">
+            {{ asset.site.name }}{% if asset.location_detail %} · {{ asset.location_detail }}{% endif %}
+        </p>
+    </hgroup>
+
+    <p class="vt-scan-badges">
+        <span class="vt-badge vt-badge--{{ asset.status }}">{{ asset.get_status_display }}</span>
+        <span class="vt-badge vt-badge--criticidad-{{ asset.criticality }}">Criticidad {{ asset.get_criticality_display|lower }}</span>
+    </p>
+
+    {% if asset.status == "dado_de_baja" %}
+        <p class="vt-alert vt-alert--warning" role="status">
+            Este equipo está dado de baja.{% if asset.baja_reason %} Motivo: {{ asset.baja_reason }}{% endif %}
+        </p>
+    {% endif %}
+
+    {% if audience == "technician" %}
+        {% comment %}
+        Theirs, and only theirs. A technician who scans a machine is about to
+        work on it; four rows belonging to somebody else are four rows between
+        them and the answer.
+        {% endcomment %}
+        <section>
+            <h2 class="vt-group-title">
+                Tus OTs en este equipo
+                {% if overdue_count %}<span class="vt-badge vt-badge--vencida">{{ overdue_count }} vencida{{ overdue_count|pluralize }}</span>{% endif %}
+            </h2>
+            <ul class="vt-list">
+                {% for wo in my_work_orders %}
+                    <li>
+                        <a class="vt-row vt-row--go{% if wo.overdue %} vt-row--vencido{% endif %}"
+                           href="{% url 'workorder_execute' wo.pk %}">
+                            <span class="vt-row-main">
+                                <strong>#{{ wo.pk }} · {{ wo.get_type_display }}</strong>
+                                <small>
+                                    {% if wo.due_date %}{{ wo.due_date|date:"d/m/Y" }}{% else %}Sin fecha{% endif %}
+                                    · {{ wo.get_status_display }}
+                                </small>
+                            </span>
+                            <span class="vt-row-side">
+                                {% if wo.overdue %}<span class="vt-badge vt-badge--vencida">Vencida</span>{% endif %}
+                                <span class="vt-go">Ejecutar</span>
+                            </span>
+                        </a>
+                    </li>
+                {% empty %}
+                    <li>
+                        <div class="vt-empty">
+                            <p>No tienes órdenes pendientes en este equipo.</p>
+                            <small>Si hay trabajo por hacer aquí, tu supervisor te lo asigna y aparece en esta pantalla.</small>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+    {% elif audience == "manager" %}
+        {% if overdue_count or overdue_plans %}
+            <p class="vt-alert vt-alert--error" role="status">
+                {% if overdue_count %}{{ overdue_count }} OT{{ overdue_count|pluralize }} vencida{{ overdue_count|pluralize }}{% endif %}
+                {% if overdue_count and overdue_plans %} · {% endif %}
+                {% if overdue_plans %}{{ overdue_plans|length }} plan{{ overdue_plans|length|pluralize:"es" }} vencido{{ overdue_plans|length|pluralize }}{% endif %}
+                en este equipo.
+            </p>
+        {% endif %}
+
+        <section>
+            <h2 class="vt-group-title">Órdenes abiertas</h2>
+            <ul class="vt-list">
+                {% for wo in open_work_orders %}
+                    {% include "workorders/_work_order_row.html" with wo=wo show_asset=False show_assignee=True %}
+                {% empty %}
+                    <li>
+                        <div class="vt-empty">
+                            <p>Sin órdenes abiertas.</p>
+                            <small>Nada pendiente en esta máquina ahora mismo.</small>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="vt-group-title">Plan de mantenimiento</h2>
+            <ul class="vt-list">
+                {% for plan in plans %}
+                    {% include "maintenance/_plan_row.html" with plan=plan show_asset=False %}
+                {% empty %}
+                    <li>
+                        <div class="vt-empty">
+                            <p>Este equipo no tiene un plan activo.</p>
+                            <small>Sin plan, sus preventivas no se generan solas.</small>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="vt-group-title">Historial reciente</h2>
+            {% include "assets/_scan_history.html" %}
+        </section>
+
+    {% elif audience == "staff" %}
+        {% comment %}
+        Consultation only: the record and what has been done to it. No
+        buttons — the office role reads this screen, it does not act on it.
+        {% endcomment %}
+        <section>
+            <h2 class="vt-group-title">Ficha</h2>
+            <table>
+                <tbody>
+                    <tr><th scope="row">Categoría</th><td>{{ asset.category.name }}</td></tr>
+                    <tr><th scope="row">Marca</th><td>{{ asset.brand|default:"—" }}</td></tr>
+                    <tr><th scope="row">Modelo</th><td>{{ asset.model|default:"—" }}</td></tr>
+                    <tr><th scope="row">Número de serie</th><td>{{ asset.serial_number|default:"—" }}</td></tr>
+                    <tr><th scope="row">Garantía hasta</th><td>{{ asset.warranty_until|date:"d/m/Y"|default:"—" }}</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2 class="vt-group-title">Historial reciente</h2>
+            {% include "assets/_scan_history.html" %}
+        </section>
+    {% endif %}
+
+    <p><a href="{% url 'asset_detail' asset.pk %}">Ver la hoja de vida completa &rarr;</a></p>
+{% endblock %}

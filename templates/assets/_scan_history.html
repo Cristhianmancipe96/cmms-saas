@@ -1,0 +1,34 @@
+{% comment %}
+The last few interventions on this machine, newest first — shared by the
+supervisor and the administrativo sections of the scan screen, because "what
+has been done to this thing lately" is the same question in both mouths and
+two copies of it would drift.
+
+Rows are links to the work order, not actions: reading the evidence is what
+this list is for.
+{% endcomment %}
+<ul class="vt-list">
+    {% for wo in history %}
+        <li>
+            <a class="vt-row" href="{% url 'workorder_detail' wo.pk %}">
+                <span class="vt-row-main">
+                    <strong>#{{ wo.pk }} · {{ wo.get_type_display }}</strong>
+                    <small>
+                        {% if wo.finished_at %}{{ wo.finished_at|date:"d/m/Y" }}{% else %}Sin fecha de cierre{% endif %}
+                        · {{ wo.completed_by|default:"Sin registro de quién ejecutó" }}
+                    </small>
+                </span>
+                <span class="vt-row-side">
+                    <span class="vt-badge vt-badge--{{ wo.badge_modifier }}">{{ wo.get_status_display }}</span>
+                </span>
+            </a>
+        </li>
+    {% empty %}
+        <li>
+            <div class="vt-empty">
+                <p>Todavía no hay trabajos cerrados en este equipo.</p>
+                <small>El historial se llena a medida que se terminan y verifican las órdenes.</small>
+            </div>
+        </li>
+    {% endfor %}
+</ul>

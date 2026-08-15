@@ -102,6 +102,50 @@ and goes. This is the screen the product is judged on.
   itself, with the scrollbar hidden (it would eat a third of a 3.5rem tap target). The
   page body never scrolls sideways; only the nav does.
 
+## The QR scan — the machine's own screen (brief 06)
+
+Scene: a sticker on a machine, a phone held in front of it. Everything below falls out
+of the fact that **the app does not know who is holding the phone until it does**.
+
+- **`.vt-plate`** — what a scan shows with no session, and to anyone outside the
+  machine's company (byte-identical pages, so a login can never reveal whose machine a
+  UUID is). It shows the internal code and the name: exactly what is already printed on
+  the label the person is standing in front of. The screen's job is to say almost
+  nothing, and that has to read as deliberate rather than broken — so it borrows the
+  object it stands in for: the engraved nameplate riveted to the machine's frame. A
+  bordered plate, an inner rim (`outline-offset: -6px`, no second element), the code cut
+  into it in `tabular-nums` at `clamp(2rem, 11vw, 3rem)`, the name beneath. One sentence
+  says what a session would add; one button starts one. **No badge, no company, no
+  status, no history, and no link carrying the asset's pk** — the template is not even
+  handed the asset object.
+- **`.vt-scan-id`** — the live view's identity block, deliberately the same
+  «CÓDIGO — Nombre» lockup as the execution screen's sticky bar: a technician who scans
+  and then executes should recognise the machine, not re-read it.
+- **`.vt-row--go` + `.vt-go`** — the technician's row goes *straight* to the execution
+  screen, because that is why they scanned. One 48px target for the whole row beats a row
+  plus a fingernail-sized button; the orange chip is the affordance, not the tap target.
+  This is the screen's one primary action, which is what buys it the orange.
+- Role sections are chosen by **`audience`** (resolved once in
+  `apps/assets/services.scan_audience`), never by `user.role` in the template. Two copies
+  of "who may see this machine" is two chances to get tenant isolation wrong.
+
+## The printable label (brief 06)
+
+- **`.vt-label`** — a physical object, so it is sized in **millimetres**: 70 × 40 mm
+  (stock adhesive label) with a 30 mm QR, scannable at roughly arm's length. Black on
+  white **in both themes, on screen too**: this is a preview of ink, and a dark-mode
+  preview is a picture of something the printer will never produce.
+- The QR is **inline SVG** rendered server-side by `segno` (`apps/assets/qr.py`): no image
+  file to store, no `/media/` URL to gate, no JavaScript, and vector output that stays
+  sharp at any sticker size. Error level M (~15% recoverable) because the sticker lives in
+  grease and steam; quiet zone 2 modules.
+- `.vt-label-url` prints the URL in 2.4 mm type — the typed fallback for a label too dirty
+  to scan.
+- **`.vt-noprint`** on everything that is app chrome; `@media print` also drops the top bar
+  and the container's max-width. No print button: this brief ships without JavaScript, and
+  what the operator needs before pressing Ctrl+P is the paper settings (100% scale, no
+  headers), which the page states.
+
 ## Component rules
 
 - **Top bar** (`.vt-topbar`): navy in both themes, sticky, brand lockup left (mark +
