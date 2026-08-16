@@ -23,6 +23,12 @@
             </a>
             <ul class="vt-nav">
                 {% if user.is_authenticated %}
+                    {# A platform admin has no company of their own, so the
+                       dashboard has no company_id to report on and answers 403:
+                       it is not offered to them either. #}
+                    {% if user.company_id and user.role != "technician" %}
+                        <li><a href="{% url 'kpi_dashboard' %}">Tablero</a></li>
+                    {% endif %}
                     {% if user.role != "staff" %}
                         <li><a href="{% url 'workorder_mine' %}">Mis OTs</a></li>
                     {% endif %}

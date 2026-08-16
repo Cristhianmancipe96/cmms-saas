@@ -18,4 +18,5 @@ urlpatterns = [
     path("", include("apps.reports.urls")),
     path("", include("apps.requests_.urls")),
     path("", include("apps.audit.urls")),
+    path("", include("apps.kpis.urls")),
 ]

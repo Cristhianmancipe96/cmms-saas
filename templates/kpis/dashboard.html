@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% comment %}
+The page frame: heading and the two filters. Everything that changes when the
+period changes lives in `_dashboard_body.html`, which HTMX swaps on its own —
+so the switcher keeps its selection and the operator does not lose their
+scroll position. Without JavaScript the same form submits normally and the
+whole page re-renders: the filters are a plain GET form first, an HTMX
+enhancement second.
+{% endcomment %}
+
+{% block title %}Tablero{% endblock %}
+
+{% block content %}
+    <hgroup>
+        <h1>Tablero de mantenimiento</h1>
+        <p>Los seis indicadores del período, calculados sobre las OTs cerradas.</p>
+    </hgroup>
+
+    <form method="get"
+          class="vt-filters"
+          role="search"
+          hx-get="{% url 'kpi_dashboard' %}"
+          hx-target="#vt-kpi-body"
+          hx-swap="innerHTML"
+          hx-trigger="change, submit"
+          hx-push-url="true">
+        <div class="vt-field-inline">
+            <label for="filtro-periodo">Período</label>
+            <select name="periodo" id="filtro-periodo">
+                {% for value, label in period_choices %}
+                    <option value="{{ value }}" {% if period.key == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="vt-field-inline">
+            <label for="filtro-sede">Sede</label>
+            <select name="sede" id="filtro-sede">
+                <option value="">Todas las sedes</option>
+                {% for site in sites %}
+                    <option value="{{ site.pk }}" {% if selected_site_id == site.pk %}selected{% endif %}>{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit">Actualizar</button>
+    </form>
+
+    <div id="vt-kpi-body">
+        {% include "kpis/_dashboard_body.html" %}
+    </div>
+{% endblock %}

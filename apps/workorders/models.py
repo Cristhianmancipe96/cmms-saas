@@ -227,6 +227,16 @@ class WorkOrder(CompanyScopedModel):
             # "Mis OTs" and the supervisor list both read by these two.
             models.Index(fields=["status", "due_date"]),
             models.Index(fields=["assigned_to", "status"]),
+            # Brief 09. The KPI queries are the only ones in the product that
+            # scan a whole company's history rather than a page of it: five of
+            # the six windows filter `company_id` + a `finished_at` range, and
+            # compliance and backlog filter `company_id` + `due_date`. The
+            # existing (company) and (status, due_date) indexes each cover half
+            # of that and leave the other half to a filter step; these two make
+            # the dashboard an index range scan per card on a table that grows
+            # by every work order the plant ever closes.
+            models.Index(fields=["company", "finished_at"], name="workorder_company_finished"),
+            models.Index(fields=["company", "due_date"], name="workorder_company_due"),
         ]
         constraints = [
             # CLAUDE.md rule 5. Postgres treats NULLs as distinct in a unique

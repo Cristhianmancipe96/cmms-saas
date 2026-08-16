@@ -102,6 +102,18 @@ go through Django's SMTP backend, configured by `EMAIL_*` in `.env` (see
 development, and never silent. Every attempt, successful or not, writes a row in
 `notification_log`.
 
+### The KPI dashboard
+
+`/tablero/` answers the six questions an auditor asks — availability, PM compliance,
+MTBF, MTTR, overdue backlog and cost per asset — with **hand-written SQL**, one
+statement per indicator in [`apps/kpis/queries.py`](apps/kpis/queries.py). It is the
+only module in the product allowed near a cursor (everything else is the ORM), so the
+guarantees the ORM gives for free are asserted by hand and tested: every value is a
+bound parameter, every statement carries `company_id = %s`, every ratio divides
+through `NULLIF`. [docs/kpis.md](docs/kpis.md) states each formula and what it leaves
+out; `apps/kpis/tests/scenario.py` is one month of a plant with every number computed
+by hand, which is what the tests assert against.
+
 ### Scheduling the daily job
 
 Preventive work orders are created by a management command, not by a background worker:

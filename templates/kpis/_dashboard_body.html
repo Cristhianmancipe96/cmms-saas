@@ -1,0 +1,232 @@
+{% comment %}
+Everything the period switcher recalculates. Six tiles, then the three tables
+that say *which machine* is behind a bad number — a KPI a supervisor cannot
+act on is decoration.
+
+«—» is written wherever a number has no denominator (no failures, no
+preventives scheduled, no assets): an indicator that cannot be computed says
+so, and never borrows a 0 that would read as "perfect" or as "terrible".
+{% endcomment %}
+
+<p class="vt-kpi-caption">
+    Del {{ period.start_date|date:"d/m/Y" }} al {{ period.end_date|date:"d/m/Y" }}
+    {% if selected_site %}· {{ selected_site.name }}{% else %}· Todas las sedes{% endif %}
+</p>
+
+<dl class="vt-kpi-grid">
+    <div class="vt-kpi">
+        <dt>Disponibilidad</dt>
+        <dd>
+            {% if availability.percent is not None %}
+                <span class="vt-kpi-value">{{ availability.percent|floatformat:1 }}<small>%</small></span>
+            {% else %}
+                <span class="vt-kpi-value vt-kpi-value--none">—</span>
+            {% endif %}
+            <small class="vt-kpi-meta">
+                {% if availability.percent is not None %}
+                    {{ availability.downtime_minutes }} min de parada registrados
+                {% else %}
+                    Sin equipos activos en el filtro
+                {% endif %}
+            </small>
+        </dd>
+    </div>
+
+    <div class="vt-kpi">
+        <dt>Cumplimiento preventivo</dt>
+        <dd>
+            {% if compliance.percent is not None %}
+                <span class="vt-kpi-value">{{ compliance.percent|floatformat:1 }}<small>%</small></span>
+            {% else %}
+                <span class="vt-kpi-value vt-kpi-value--none">—</span>
+            {% endif %}
+            <small class="vt-kpi-meta">
+                {% if compliance.scheduled %}
+                    {{ compliance.on_time }} de {{ compliance.scheduled }} a tiempo
+                {% else %}
+                    Sin preventivas programadas en el período
+                {% endif %}
+            </small>
+        </dd>
+    </div>
+
+    <div class="vt-kpi">
+        <dt>MTBF</dt>
+        <dd>
+            {% if mtbf.hours is not None %}
+                <span class="vt-kpi-value">{{ mtbf.hours|floatformat:1 }}<small>h</small></span>
+            {% else %}
+                <span class="vt-kpi-value vt-kpi-value--none">—</span>
+            {% endif %}
+            <small class="vt-kpi-meta">
+                {% if mtbf.failures %}
+                    {{ mtbf.failures }} falla{{ mtbf.failures|pluralize }} · {{ mtbf.uptime_hours|floatformat:0 }} h operando
+                {% else %}
+                    Sin fallas en el período
+                {% endif %}
+            </small>
+        </dd>
+    </div>
+
+    <div class="vt-kpi">
+        <dt>MTTR</dt>
+        <dd>
+            {% if mttr.hours is not None %}
+                <span class="vt-kpi-value">{{ mttr.hours|floatformat:1 }}<small>h</small></span>
+            {% else %}
+                <span class="vt-kpi-value vt-kpi-value--none">—</span>
+            {% endif %}
+            <small class="vt-kpi-meta">
+                {% if mttr.repairs %}
+                    {# "reparación" → "reparaciones": the accent moves, so no |pluralize can build it. #}
+                    {{ mttr.repairs }} {% if mttr.repairs == 1 %}reparación correctiva{% else %}reparaciones correctivas{% endif %}
+                {% else %}
+                    Sin reparaciones cerradas con hora de inicio y fin
+                {% endif %}
+            </small>
+        </dd>
+    </div>
+
+    <div class="vt-kpi">
+        <dt>Backlog vencido</dt>
+        <dd>
+            <span class="vt-kpi-value {% if backlog.total %}vt-kpi-value--alerta{% endif %}">{{ backlog.total }}</span>
+            <small class="vt-kpi-meta">OTs abiertas y vencidas hoy {{ today|date:"d/m/Y" }}</small>
+        </dd>
+    </div>
+
+    <div class="vt-kpi">
+        <dt>Costo del período</dt>
+        <dd>
+            <span class="vt-kpi-value">$<span class="vt-kpi-cop">{{ cost.total_cop|floatformat:"0g" }}</span></span>
+            <small class="vt-kpi-meta">Mano de obra + repuestos, en pesos</small>
+        </dd>
+    </div>
+</dl>
+
+<h2>Backlog por antigüedad</h2>
+{% if backlog.total %}
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">Antigüedad</th>
+                <th scope="col" class="vt-num-cell">OTs</th>
+                <th scope="col"><span class="vt-sr-only">Peso relativo</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for label, count, severity in backlog.bucket_counts %}
+                <tr>
+                    <th scope="row">{{ label }}</th>
+                    <td class="vt-num-cell">{{ count }}</td>
+                    <td class="vt-bar-cell">
+                        <span class="vt-bar">
+                            <span class="vt-bar-fill vt-bar-fill--{{ severity }}"
+                                  style="width: {% widthratio count backlog.total 100 %}%"></span>
+                        </span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Las más viejas</h3>
+    <ul class="vt-list">
+        {% for row in backlog.rows %}
+            <li>
+                <a class="vt-row vt-row--vencido" href="{% url 'workorder_detail' row.work_order_id %}">
+                    <span class="vt-row-main">
+                        <strong>{{ row.asset_code }} — {{ row.asset_name }}</strong>
+                        <small>Programada el {{ row.due_date|date:"d/m/Y" }} · OT #{{ row.work_order_id }}</small>
+                    </span>
+                    <span class="vt-row-side">
+                        <span class="vt-badge vt-badge--vencida">{{ row.days_late }} d</span>
+                    </span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="vt-empty">
+        <p>Sin OTs vencidas.</p>
+        <small>Todo lo programado está dentro de fecha.</small>
+    </div>
+{% endif %}
+
+<h2>Costo por equipo y mes</h2>
+{% if cost.rows %}
+    <div class="vt-table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col" class="vt-num-cell">#</th>
+                    <th scope="col">Equipo</th>
+                    <th scope="col">Mes</th>
+                    <th scope="col" class="vt-num-cell">Mano de obra</th>
+                    <th scope="col" class="vt-num-cell">Repuestos</th>
+                    <th scope="col" class="vt-num-cell">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in cost.rows %}
+                    <tr>
+                        <td class="vt-num-cell">{{ row.position }}</td>
+                        <th scope="row">
+                            {{ row.code }}
+                            <small>{{ row.name }}</small>
+                        </th>
+                        <td>{{ row.month|date:"b Y"|capfirst }}</td>
+                        <td class="vt-num-cell">${{ row.labor_cop|floatformat:"0g" }}</td>
+                        <td class="vt-num-cell">${{ row.parts_cop|floatformat:"0g" }}</td>
+                        <td class="vt-num-cell"><strong>${{ row.total_cop|floatformat:"0g" }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="vt-empty">
+        <p>Sin costos registrados en el período.</p>
+        <small>Los costos se cargan al terminar cada OT: mano de obra y repuestos.</small>
+    </div>
+{% endif %}
+
+<h2>Equipos con paradas</h2>
+{% if asset_rows %}
+    <div class="vt-table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Equipo</th>
+                    <th scope="col" class="vt-num-cell">Fallas</th>
+                    <th scope="col" class="vt-num-cell">Parada</th>
+                    <th scope="col" class="vt-num-cell">Disponibilidad</th>
+                    <th scope="col" class="vt-num-cell">MTBF</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in asset_rows %}
+                    <tr>
+                        <th scope="row">
+                            {{ row.code }}
+                            <small>{{ row.name }}</small>
+                        </th>
+                        <td class="vt-num-cell">{{ row.failures }}</td>
+                        <td class="vt-num-cell">{{ row.downtime_minutes }} min</td>
+                        <td class="vt-num-cell">
+                            {% if row.availability is not None %}{{ row.availability|floatformat:1 }} %{% else %}—{% endif %}
+                        </td>
+                        <td class="vt-num-cell">
+                            {% if row.mtbf_hours is not None %}{{ row.mtbf_hours|floatformat:1 }} h{% else %}—{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="vt-empty">
+        <p>Ningún equipo registró paradas ni fallas en el período.</p>
+        <small>Aquí aparecen los equipos con peor disponibilidad cuando las haya.</small>
+    </div>
+{% endif %}

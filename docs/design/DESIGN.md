@@ -231,11 +231,44 @@ System font stack (Pico default) — no webfonts: plant-floor phones on weak net
 must not wait for type. Brand voice comes from the lockup (uppercase, tracked) and
 color, not from a display font. UI text Spanish (es-CO); sentence case; concise labels.
 
-## Charts (brief 09)
+## The KPI dashboard (brief 09)
 
-Build KPI charts from these tokens (navy/slate structure, orange only to highlight the
-one series that matters, semantic colors for states). Read the `dataviz` skill before
-writing chart code.
+Scene: an administrator on Monday morning, and the same page projected in a demo.
+Six numbers legible from across a desk, each followed by the table that says *which
+machine* is behind it.
+
+- **No charts, and that is the decision, not a shortcut.** Six single current values
+  are a **KPI row of stat tiles**, not six one-bar bar charts; the tables that follow
+  carry more than seven meaningful rows, which is a table's job, not a palette's.
+  A chart library would also be the first JavaScript dependency on a plant-floor
+  phone. (Method: the `dataviz` skill — form first, colour last.)
+- **`.vt-kpi-grid` / `.vt-kpi`** — `auto-fit minmax(8.5rem, 1fr)`, no breakpoints: two
+  tiles per row at 390px, three at 700px. Marked up as a `<dl>`, so a screen reader
+  reads «Disponibilidad → 99,6 %» as the pair it is. Label uppercase muted, value
+  1.75rem, one line of context underneath (`2 de 4 a tiempo`) — a percentage with no
+  denominator is a number nobody can act on.
+- **Proportional figures in the tiles, `tabular-nums` in the tables.** Tabular gives
+  every digit the width of a zero, which reads loose at display size; alignment only
+  matters where numbers stack in a column.
+- **«—» is the empty value**, never 0. An indicator without a denominator (no
+  failures, no preventives scheduled, no assets) says it has no data; a 0 would read
+  as "perfect" or as "terrible" depending on the indicator, and both are lies.
+- **One semantic colour on the whole page**: the backlog tile turns danger red when
+  it is not zero. Overdue work is the only number here that is always bad news; if
+  four tiles were coloured, none would mean anything.
+- **`.vt-bar`** — the ageing bar is a glance-level cue beside a written count, the
+  same division of labour as `.vt-progress` on the execution screen. Track and fill
+  share a family, severity lives in the fill (amber ≤30 days, danger beyond), and the
+  count is always written next to it: the bar never carries a number alone.
+- **`.vt-table-wrap`** — money tables are six columns wide and scroll inside
+  themselves. The page body still never scrolls sideways; only the nav does.
+- The period switcher is a plain GET form that works without JavaScript, enhanced
+  with `hx-get` to swap only `#vt-kpi-body` — the selection and the scroll position
+  survive the change.
+
+Verified live at 375px and on desktop, both themes: no page-level horizontal
+overflow, controls at 50px, contrast on the tiles 5.7:1 (labels) to 17.2:1 (values)
+in light and 6.6:1 to 12.4:1 in dark.
 
 ## Assets
 

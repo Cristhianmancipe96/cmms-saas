@@ -1124,7 +1124,86 @@ blockquote.vt-report-text { font-size: 0.9375rem; color: var(--vt-muted); }
 /* A labelled control inside a filter bar (the date range). The label sits
    above its input and the pair flexes like every other filter control. */
 .vt-field-inline { display: flex; flex-direction: column; gap: 0.15rem; flex: 1 1 8rem; margin: 0; font-size: 0.75rem; color: var(--vt-muted); }
-.vt-field-inline input { margin: 0; min-height: var(--vt-tap); }
+/* `flex: none` is load-bearing: .vt-filters gives every select `flex: 1 1 10rem`,
+   and inside this column-direction wrapper the main axis is vertical — the
+   basis would become a 10rem-tall select. */
+.vt-field-inline :is(input, select) { margin: 0; flex: none; min-height: var(--vt-tap); }
+
+/* --------------------------------------------------------------------------
+   8.9 The KPI dashboard (brief 09)
+   --------------------------------------------------------------------------
+   Scene: an administrator on Monday morning, and the same page projected in a
+   demo. Six numbers have to be readable from across a desk, and each one has
+   to be followed by the table that says which machine is behind it.
+
+   No chart library: the six indicators are single current values, which is a
+   KPI row of stat tiles — a one-bar bar chart of "disponibilidad 99,2 %" adds
+   pixels and no information. The one bar on the page is the backlog ageing
+   cue, and the count is written next to it, so the bar never carries a number
+   on its own. */
+
+.vt-kpi-caption { margin: 0 0 0.75rem; color: var(--vt-muted); font-size: 0.8125rem; }
+
+.vt-kpi-grid {
+  display: grid;
+  /* auto-fit, no breakpoints: two tiles per row on a 390px phone, six across
+     on a desktop, nothing to maintain in between. */
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 2rem;
+}
+.vt-kpi {
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-background-color);
+}
+.vt-kpi dt {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vt-muted);
+}
+.vt-kpi dd { margin: 0.25rem 0 0; }
+/* Proportional figures, deliberately: `tabular-nums` gives every digit the
+   width of a zero, which makes a display-size number look loose. Tabular is
+   for the columns below (.vt-num-cell), where digits must line up. */
+.vt-kpi-value { display: block; font-size: 1.75rem; font-weight: 600; line-height: 1.1; color: var(--vt-ink); }
+.vt-kpi-value small { margin-left: 0.1rem; font-size: 0.9375rem; font-weight: 500; color: var(--vt-muted); }
+/* An indicator without a denominator reads as absent, not as zero. */
+.vt-kpi-value--none { color: var(--vt-muted); }
+/* The only tile that ever takes a semantic colour, and only when it is not
+   zero: overdue work is the one number on this page that is always bad news. */
+.vt-kpi-value--alerta { color: var(--vt-danger-700); }
+.vt-kpi-cop { font-size: 1.375rem; }  /* pesos run long — keep the tile one line */
+.vt-kpi-meta { display: block; margin-top: 0.15rem; color: var(--vt-muted); font-size: 0.75rem; }
+
+/* Six-column money tables do not fit 390px. They scroll inside themselves;
+   the page body still never scrolls sideways (only the nav does). */
+.vt-table-wrap { overflow-x: auto; }
+.vt-table-wrap table { margin-bottom: 0; }
+.vt-table-wrap th small { display: block; font-weight: 400; font-size: 0.75rem; color: var(--vt-muted); }
+
+/* The ageing bar: a glance-level cue beside a written count, the same division
+   of labour as .vt-progress on the execution screen. Track and fill share a
+   family; severity lives in the fill. */
+.vt-bar { display: block; width: 100%; min-width: 3.5rem; height: 0.5rem; border-radius: 999px; background: var(--vt-slate-100); overflow: hidden; }
+.vt-bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--vt-slate-500); }
+.vt-bar-fill--warning { background: var(--vt-warning-700); }
+.vt-bar-fill--danger  { background: var(--vt-danger-700); }
+.vt-bar-cell { width: 38%; vertical-align: middle; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .vt-bar { background: var(--vt-navy-700); }
+  :root:not([data-theme="light"]) .vt-kpi-value--alerta { color: var(--vt-danger-300); }
+  :root:not([data-theme="light"]) .vt-bar-fill--warning { background: var(--vt-warning-300); }
+  :root:not([data-theme="light"]) .vt-bar-fill--danger  { background: var(--vt-danger-300); }
+}
+[data-theme="dark"] .vt-bar { background: var(--vt-navy-700); }
+[data-theme="dark"] .vt-kpi-value--alerta { color: var(--vt-danger-300); }
+[data-theme="dark"] .vt-bar-fill--warning { background: var(--vt-warning-300); }
+[data-theme="dark"] .vt-bar-fill--danger  { background: var(--vt-danger-300); }
 
 /* --------------------------------------------------------------------------
    9. Details refinements

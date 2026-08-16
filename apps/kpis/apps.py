@@ -1,0 +1,8 @@
+from django.apps import AppConfig
+
+
+class KpisConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.kpis"
+    label = "kpis"
+    verbose_name = "indicadores"

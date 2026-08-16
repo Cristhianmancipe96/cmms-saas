@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.requests_",
     "apps.audit",
+    "apps.kpis",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
