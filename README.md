@@ -247,6 +247,24 @@ Supabase specifically, use the **session pooler** connection string (`*.pooler.s
 port 5432), not the direct one — the direct host is IPv6-only and unreachable from
 IPv4-only networks.
 
+## Deploying to a public URL
+
+The five-minute script above is worth much more from a phone that is not on the office
+wifi — which needs a public HTTPS address, not `localhost`. The repository ships what that
+takes: a production settings profile (`config/settings_prod.py`) that passes
+`manage.py check --deploy` with zero warnings and cannot be started with `DEBUG=True`, a
+`Dockerfile` that migrates and then serves through gunicorn with WhiteNoise, and backup
+and restore scripts that CI exercises on every push.
+
+```bash
+docker build -t vectron:latest .
+```
+
+**[docs/deploy.md](docs/deploy.md)** is the checklist: every environment variable and what
+breaks without it, Railway and VPS paths, domain and HTTPS, a five-step smoke test on the
+deployed URL, how to restore a backup, and an honest list of what this deployment does not
+do yet.
+
 ## Roadmap
 
 | Phase | Scope | Exit criterion |

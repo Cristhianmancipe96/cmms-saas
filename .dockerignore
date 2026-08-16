@@ -1,0 +1,35 @@
+# Keep the build context small and, above all, keep local secrets and local
+# data out of the image. `.env` is git-ignored but it does exist on a developer
+# machine, and `docker build .` would happily copy it in.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+service-account*.json
+
+# Local state that must never become part of a deployed image. `backups/`
+# especially: a database dump copied into an image is a copy of everything the
+# database held, travelling wherever the image goes.
+media/
+backups/
+staticfiles/
+.venv/
+db.sqlite3
+
+.git/
+.github/
+.claude/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

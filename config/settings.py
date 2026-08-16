@@ -1,7 +1,12 @@
 """
-Django settings for the cmms-saas project.
+Base Django settings for the cmms-saas project.
 
 Settings are read from environment variables (see .env.example) via django-environ.
+
+This module is the development and test profile. Production does NOT use it
+directly: it runs `config.settings_prod`, which imports everything here and then
+locks down the parts that only matter once the site is reachable from the
+internet (brief 11). See docs/deploy.md.
 """
 
 from pathlib import Path
@@ -175,6 +180,62 @@ DEFAULT_FROM_EMAIL = env.str(
 N8N_WEBHOOK_URL = env.str("N8N_WEBHOOK_URL", default="")
 N8N_WEBHOOK_TOKEN = env.str("N8N_WEBHOOK_TOKEN", default="")
 N8N_WEBHOOK_TIMEOUT = env.float("N8N_WEBHOOK_TIMEOUT", default=3.0)
+
+
+# Logging (brief 11)
+#
+# One handler, stdout, everywhere. On a VPS or a PaaS the platform is what
+# collects logs: it reads the process's stdout and nothing else. Writing to a
+# file inside a container means the lines die with the container, so the
+# `logger.warning` calls in apps/core/webhooks.py — the ones that say a webhook
+# could not be delivered — would be invisible exactly when they matter.
+#
+# The format is fixed and parseable (timestamp, level, logger, message) instead
+# of Django's bare message, so a line in the platform's log viewer says *when*
+# and *who* without having to guess.
+#
+# House rule: no PII and no credentials in log lines (CLAUDE.md). The webhook
+# logger already obeys it — it logs the exception class, never the payload.
+
+LOG_LEVEL = env.str("LOG_LEVEL", default="INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        # Django logs handled 4xx at WARNING and unhandled 500s at ERROR here.
+        # Left at INFO so a burst of 404s on the QR endpoint is visible.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
+# Error tracking (phase 3) — deliberately not wired yet.
+#
+# When it is: add `sentry-sdk` to the dependencies and initialise it here with
+# `SENTRY_DSN` from the environment, `send_default_pii=False` (Ley 1581: the
+# tracker is a third party and must not receive customer data) and a traces
+# sample rate well below 1.0. Until then the platform's log viewer is the only
+# place errors surface, which is why the format above is worth having.
 
 
 # Default primary key field type

@@ -12,6 +12,12 @@ venv/
 /staticfiles/
 local_settings.py
 
+# Database dumps (scripts/backup.sh). A dump is a full copy of everything the
+# database held — the single worst thing that could be committed to a public
+# repository.
+/backups/
+*.dump
+
 # Environment & secrets — never commit these
 .env
 .env.*

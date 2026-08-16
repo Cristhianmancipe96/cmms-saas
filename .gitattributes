@@ -1,1 +1,7 @@
 * text=auto
+
+# Shell scripts and container files are read by Linux, always. Without this a
+# Windows checkout gives them CRLF endings and the container dies with
+# "bad interpreter: /bin/sh^M" — a failure that looks nothing like its cause.
+*.sh text eol=lf
+Dockerfile text eol=lf

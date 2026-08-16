@@ -4,6 +4,66 @@ Newest first. Format: what / why / what was rejected.
 
 ---
 
+## 2026-08-16 · Production settings as a thin overlay module, not a settings package
+
+**What:** `config/settings.py` stays as it is and remains the development and test
+profile. Production runs `config/settings_prod.py`, which imports it and overrides what
+changes once the site is on the internet. `DEBUG = False` is a literal there — no
+environment variable can flip it — and `DEBUG=True` in the environment raises
+`ImproperlyConfigured` at import instead of being ignored.
+**Why:** the brief's requirement was that `DEBUG=True` in production be *impossible*, not
+unlikely. A literal in a module that production always loads is impossible; a variable
+with a safe default is merely unlikely. Keeping the base module in place also meant the
+678-test suite, `conftest.py` and CI kept working untouched — the split introduced no risk
+to anything already green.
+**Rejected:** a `config/settings/{base,dev,prod}.py` package (the textbook layout, but it
+renames the module every existing entry point names, for no behavioural gain); one file
+with `if not DEBUG:` branches (the production configuration would then be reachable only
+by reading the whole file, and nothing prevents `DEBUG=True`); `django-configurations`
+(a dependency to express a fifteen-line difference).
+
+## 2026-08-16 · The deploy unit is a Dockerfile, not a platform-specific file
+
+**What:** one `Dockerfile` at the repository root, plus `docker-entrypoint.sh` which
+applies migrations and then execs gunicorn. No `Procfile`, no `railway.toml`, no
+`app.json`. CI builds the image and boots it against a real database on every push.
+**Why:** the platform is not decided and should not have to be. Railway, Render and Fly
+all build a plain Dockerfile from the repository, and a VPS runs the same image with
+`docker run` — so the choice of platform stays reversible and the thing that was tested
+in CI is byte-for-byte the thing that runs. It also solves the WeasyPrint problem: the
+image installs Pango and HarfBuzz, so PDFs render in production even though they cannot
+render on the owner's Windows machine.
+**Why migrations in the entrypoint:** with `set -e`, a failed migration exits the
+container instead of starting a web server on a half-migrated database. The cost is that
+two replicas starting at once would race, which is why `docs/deploy.md` says one instance
+and says why.
+**Rejected:** buildpacks (implicit, platform-specific, and cannot install Pango without
+escape hatches); `railway.toml` (locks the deploy to one vendor); running migrations as a
+manual step (it is the step people forget, and forgetting it produces 500s rather than a
+clear failure).
+
+## 2026-08-16 · WhiteNoise for static files; media stays behind the authenticated view
+
+**What:** WhiteNoise serves `STATIC_ROOT` from the application process, with
+`CompressedManifestStaticFilesStorage` and `collectstatic` run at image build time.
+Uploaded files are untouched by this: they are still streamed only by
+`apps.assets.views.serve_file`, after a role and company check.
+**Why:** the static assets here are htmx, Pico CSS and a stylesheet — kilobytes, vendored,
+served a handful of times per session. A CDN or an S3 bucket for that is infrastructure to
+operate, pay for and secure, in exchange for nothing measurable. Manifest storage adds the
+content hash to each filename, which makes a far-future cache header safe and makes a
+deploy incapable of serving new HTML with stale CSS; it also fails the build if a template
+points at a static file that does not exist.
+**Why media is not in this decision at all:** photos and manuals are tenant data. Any
+mechanism that serves them by path — WhiteNoise, nginx, a bucket — makes them readable by
+anyone who can guess a filename, which is the exact rule `CLAUDE.md` forbids. A test
+asserts no URL pattern serves `MEDIA_URL`. The cost is that Django streams every photo;
+that cost is the point.
+**Rejected:** nginx serving `/static/` (a second component to configure on every platform,
+for kilobytes); S3/CloudFront (an account, a bill and a bucket policy to get wrong);
+`ManifestStaticFilesStorage` without compression (WhiteNoise's gzip and brotli variants
+are free at build time).
+
 ## 2026-08-13 · Stack: Django 5 + HTMX + PostgreSQL
 
 **What:** Django monolith with HTMX-driven templates; PostgreSQL with JSONB for flexible

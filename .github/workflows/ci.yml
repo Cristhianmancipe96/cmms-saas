@@ -58,3 +58,218 @@ jobs:
 
       - name: Test (pytest)
         run: uv run pytest -q
+
+  # Secret scanning over the WHOLE history, not just the diff (brief 11).
+  # pre-commit already blocks a secret from being committed, but it only ever
+  # sees the staged change: a secret added before the hook existed, or
+  # committed with --no-verify, stays in the history where anyone who clones
+  # the (public) repo can read it. This job is the one that would catch that.
+  gitleaks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Without this, actions/checkout fetches a single commit and the
+          # "full history" scan silently scans one commit — a green check that
+          # verifies nothing.
+          fetch-depth: 0
+
+      # Pinned to the same version as .pre-commit-config.yaml so a developer's
+      # machine and CI agree on what counts as a secret.
+      - name: Install gitleaks
+        run: |
+          curl -sSfL \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      # --log-opts=--all reaches every ref, not just the checked-out branch.
+      # --redact keeps a found secret out of the CI log, which is itself public
+      # on a public repo: the job says where it is, not what it is.
+      - name: Scan git history for secrets
+        run: gitleaks detect --source . --redact --log-opts=--all
+
+  # A backup nobody has restored is a guess. This job takes a real dump of a
+  # seeded database, destroys the schema, restores it and checks the rows came
+  # back — so docs/deploy.md's restore instructions are verified on every push
+  # instead of on the day they are needed.
+  backup-restore:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cmms
+          POSTGRES_USER: cmms
+          POSTGRES_PASSWORD: cmms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cmms -d cmms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-anywhere-else
+      DEBUG: "False"
+      DATABASE_URL: postgresql://cmms:cmms@localhost:5432/cmms
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.29"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # --force is required because DEBUG is False here. This is the flag's
+      # legitimate use: a throwaway database that is meant to hold demo data.
+      - name: Migrate and seed a database worth backing up
+        run: |
+          uv run python manage.py migrate --noinput
+          uv run python manage.py seed_demo --force
+
+      - name: Back up
+        run: ./scripts/backup.sh ./backups
+
+      - name: Destroy the schema
+        run: |
+          psql "$DATABASE_URL" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+          test "$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")" = "0"
+
+      - name: Restore
+        env:
+          RESTORE_CONFIRM: si
+        run: ./scripts/restore.sh "$(ls ./backups/vectron-db-*.dump | head -1)"
+
+      # Counting rows is the point: pg_restore can report success while having
+      # restored an empty schema, and "the command exited 0" is not evidence
+      # that the data came back.
+      - name: Verify the data came back
+        run: |
+          ASSETS=$(psql "$DATABASE_URL" -tAc 'SELECT count(*) FROM assets_asset')
+          ORDERS=$(psql "$DATABASE_URL" -tAc 'SELECT count(*) FROM workorders_workorder')
+          echo "assets=$ASSETS work orders=$ORDERS"
+          test "$ASSETS" -gt 0
+          test "$ORDERS" -gt 0
+          uv run python manage.py showmigrations --plan | grep -c '\[X\]'
+
+  # Building AND RUNNING the production image in CI means a broken deploy is
+  # found here, for free, instead of during a deploy with the owner watching.
+  # Building alone would only prove the image compiles; the failures that
+  # actually happen — migrations that do not run, a proxy header that is not
+  # trusted, a redirect loop — need the container to start.
+  docker:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cmms
+          POSTGRES_USER: cmms
+          POSTGRES_PASSWORD: cmms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cmms -d cmms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the production image
+        run: docker build --tag vectron:ci .
+
+      # Both are easy to break with a one-line edit and invisible until
+      # something goes wrong in production.
+      - name: The image runs as a non-root user
+        run: |
+          test "$(docker run --rm --entrypoint id vectron:ci -u)" != "0"
+          docker run --rm --entrypoint id vectron:ci -un
+
+      - name: Static files were collected at build time
+        run: docker run --rm --entrypoint test vectron:ci -f /app/staticfiles/staticfiles.json
+
+      # --network host so the container reaches the Postgres service the runner
+      # published on localhost. TRUST_PROXY_SSL_HEADER is on, which is how this
+      # runs behind Railway or nginx — and is what makes the X-Forwarded-Proto
+      # header below equivalent to arriving over HTTPS.
+      - name: Start the container against a real database
+        run: |
+          docker run --detach --name vectron --network host \
+            --env SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123456789 \
+            --env ALLOWED_HOSTS=localhost \
+            --env CSRF_TRUSTED_ORIGINS=https://localhost \
+            --env SITE_URL=https://localhost \
+            --env DATABASE_URL=postgresql://cmms:cmms@localhost:5432/cmms \
+            --env EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend \
+            --env TRUST_PROXY_SSL_HEADER=True \
+            --env PORT=8000 \
+            vectron:ci
+          # `if` rather than `curl ... && break`: the step runs under `bash -e`,
+          # where a failing and-list aborts the whole step — so the retry loop
+          # would give up on the first attempt, before the container is up.
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null -H 'X-Forwarded-Proto: https' \
+              http://localhost:8000/login/; then
+              break
+            fi
+            sleep 2
+          done
+          docker logs vectron
+
+      - name: The entrypoint applied migrations before serving
+        run: docker logs vectron 2>&1 | grep -q 'Aplicando migraciones'
+
+      - name: The login page is served over the proxy's HTTPS
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'X-Forwarded-Proto: https' http://localhost:8000/login/)
+          echo "HTTP $code"
+          test "$code" = "200"
+
+      # Without the forwarded header the same request is plain HTTP, and
+      # SECURE_SSL_REDIRECT must bounce it to https:// rather than answer it.
+      - name: Plain HTTP is redirected to HTTPS
+        run: |
+          target=$(curl -s -o /dev/null -w '%{redirect_url}' http://localhost:8000/login/)
+          echo "redirect -> $target"
+          case "$target" in
+            https://*) ;;
+            *) echo "esperaba una redirección a https://"; exit 1 ;;
+          esac
+
+      # Step 4 of the smoke test in docs/deploy.md is "email the PDF", and the
+      # owner's own machine cannot render one at all (no GTK runtime). If the
+      # image cannot either, that is discovered here rather than in front of a
+      # prospect.
+      - name: The PDF engine renders inside the image
+        run: |
+          docker exec vectron python manage.py shell -c "from apps.reports import pdf; assert pdf.engine_available(), 'sin motor de PDF en la imagen'; out = pdf.render('<p>hola</p>'); assert out[:4] == b'%PDF', out[:20]; print('PDF ok:', len(out), 'bytes')"
+
+      # A slim image has no fonts, and WeasyPrint does not complain about that
+      # — it produces a document that simply looks wrong. DejaVu is the family
+      # static/css/vectron-pdf.css actually expects to find.
+      - name: Fonts are installed
+        run: docker run --rm --entrypoint ls vectron:ci /usr/share/fonts/truetype/dejavu/
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs vectron || true
