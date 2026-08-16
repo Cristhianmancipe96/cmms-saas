@@ -13,7 +13,20 @@
                 <span class="vt-row"><span class="vt-row-main"><strong>{{ category.name }}</strong></span></span>
             </li>
         {% empty %}
-            <li>No hay categorías registradas.</li>
+            <li>
+                <div class="vt-empty">
+                    <p>Todavía no hay categorías.</p>
+                    <small>
+                        La categoría agrupa máquinas del mismo tipo («Empacadora»,
+                        «Compresor») y es la que sugiere el checklist correcto al abrir una OT.
+                    </small>
+                    {% if user.role == "admin" or user.role == "supervisor" %}
+                        <a href="{% url 'assetcategory_create' %}" role="button">Crear la primera</a>
+                    {% endif %}
+                </div>
+            </li>
         {% endfor %}
     </ul>
+
+    <p><a href="{% url 'asset_list' %}">&larr; Volver a equipos</a></p>
 {% endblock %}

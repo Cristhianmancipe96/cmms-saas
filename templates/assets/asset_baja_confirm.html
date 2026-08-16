@@ -9,7 +9,9 @@
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Confirmar baja</button>
-        <a href="{% url 'asset_detail' asset.pk %}" role="button" class="secondary">Cancelar</a>
+        <div class="vt-actions">
+            <button type="submit">Confirmar baja</button>
+            <a href="{% url 'asset_detail' asset.pk %}" role="button" class="secondary outline">Cancelar</a>
+        </div>
     </form>
 {% endblock %}

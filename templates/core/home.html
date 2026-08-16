@@ -1,6 +1,90 @@
 {% extends "base.html" %}
 
+{% comment %}
+The screen everybody lands on after logging in. It is not a dashboard — the
+numbers live in «Tablero» — it is a door: the two or three places this
+particular person actually starts their day, named in their own words.
+
+The role conditions mirror base.html's nav on purpose (a technician has no
+dashboard, an office user has no «Mis OTs»). Both lists are short and both
+would have to change together anyway; the alternative — a context processor
+that computes "which links may this user see" — is a third place to get the
+same rule wrong.
+{% endcomment %}
+
+{% block title %}Inicio{% endblock %}
+
 {% block content %}
-    <h1>hola</h1>
-    <p>El esqueleto de cmms-saas está en pie.</p>
+    <hgroup>
+        <h1>Hola, {{ user.get_short_name|default:user.get_username }}</h1>
+        <p>
+            {% if user.company %}{{ user.company.name }} · {% endif %}
+            {{ user.get_role_display|default:"Administrador de la plataforma" }}
+        </p>
+    </hgroup>
+
+    <ul class="vt-list">
+        {% if user.role != "staff" %}
+            <li>
+                <a class="vt-row" href="{% url 'workorder_mine' %}">
+                    <span class="vt-row-main">
+                        <strong>Mis OTs</strong>
+                        <small>Lo que tienes asignado hoy, lo vencido primero.</small>
+                    </span>
+                </a>
+            </li>
+        {% endif %}
+        {% if user.company_id and user.role != "technician" %}
+            <li>
+                <a class="vt-row" href="{% url 'kpi_dashboard' %}">
+                    <span class="vt-row-main">
+                        <strong>Tablero</strong>
+                        <small>Disponibilidad, cumplimiento, MTBF, MTTR, backlog y costos.</small>
+                    </span>
+                </a>
+            </li>
+        {% endif %}
+        <li>
+            <a class="vt-row" href="{% url 'asset_list' %}">
+                <span class="vt-row-main">
+                    <strong>Equipos</strong>
+                    <small>La hoja de vida de cada máquina, con su historial y su QR.</small>
+                </span>
+            </a>
+        </li>
+        <li>
+            <a class="vt-row" href="{% url 'maintenancerequest_list' %}">
+                <span class="vt-row-main">
+                    <strong>Solicitudes</strong>
+                    <small>
+                        {% if user.role == "admin" or user.role == "supervisor" %}
+                            Las fallas que reportó la gente y están sin revisar.
+                        {% else %}
+                            Reportar una falla y ver en qué quedó lo que ya reportaste.
+                        {% endif %}
+                    </small>
+                </span>
+            </a>
+        </li>
+        {% if user.role == "admin" or user.role == "supervisor" %}
+            <li>
+                <a class="vt-row" href="{% url 'maintenanceplan_list' %}">
+                    <span class="vt-row-main">
+                        <strong>Planes</strong>
+                        <small>Lo preventivo: cada cuánto se toca cada máquina.</small>
+                    </span>
+                </a>
+            </li>
+        {% endif %}
+        {% if user.role == "admin" %}
+            <li>
+                <a class="vt-row" href="{% url 'auditlog_list' %}">
+                    <span class="vt-row-main">
+                        <strong>Auditoría</strong>
+                        <small>Quién hizo qué y cuándo. No se edita ni se borra.</small>
+                    </span>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
 {% endblock %}

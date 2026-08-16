@@ -58,7 +58,24 @@
                 </a>
             </li>
         {% empty %}
-            <li>No hay equipos registrados con esos filtros.</li>
+            <li>
+                <div class="vt-empty">
+                    {% if is_filtered %}
+                        <p>No hay equipos con esos filtros.</p>
+                        <small>Prueba con otro sitio, otra categoría, o quita el filtro.</small>
+                        <a href="{% url 'asset_list' %}" role="button" class="secondary outline">Ver todos</a>
+                    {% else %}
+                        <p>Todavía no hay equipos registrados.</p>
+                        <small>
+                            Cada equipo es una hoja de vida: su ficha técnica, sus documentos,
+                            su historial y su código QR. Empieza por el que más se detiene.
+                        </small>
+                        {% if user.role == "admin" or user.role == "supervisor" %}
+                            <a href="{% url 'asset_create' %}" role="button">Registrar el primer equipo</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </li>
         {% endfor %}
     </ul>
 

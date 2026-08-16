@@ -33,6 +33,9 @@ class ChecklistTemplateListView(RoleRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["categories"] = AssetCategory.objects.all()
         context["filters"] = self.request.GET
+        # "Nothing matches this filter" and "no templates yet" are different
+        # sentences; the empty state picks one from here.
+        context["is_filtered"] = any(self.request.GET.values())
         return context
 
 

@@ -117,6 +117,10 @@ class AssetListView(RoleRequiredMixin, ListView):
         context["status_choices"] = Asset.Status.choices
         context["criticality_choices"] = Asset.Criticality.choices
         context["filters"] = self.request.GET
+        # Which empty state to show: "no equipment yet, start here" is a
+        # different sentence from "nothing matches this filter", and only the
+        # request knows which one applies.
+        context["is_filtered"] = any(self.request.GET.values())
         return context
 
 
@@ -262,7 +266,7 @@ def asset_delete(request, pk):
             messages.error(
                 request,
                 "No se puede eliminar un equipo con órdenes de trabajo. "
-                "Usa 'Dar de baja' en su lugar.",
+                "Usa «Dar de baja» en su lugar.",
             )
             return redirect("asset_detail", pk)
         messages.success(request, f"Equipo {asset.name} eliminado.")

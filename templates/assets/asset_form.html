@@ -22,6 +22,10 @@
             </button>
         </fieldset>
 
-        <button type="submit">Guardar</button>
+        <div class="vt-actions">
+            <button type="submit">Guardar</button>
+            <a href="{% if is_create %}{% url 'asset_list' %}{% else %}{% url 'asset_detail' asset.pk %}{% endif %}"
+               role="button" class="secondary outline">Cancelar</a>
+        </div>
     </form>
 {% endblock %}

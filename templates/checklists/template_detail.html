@@ -65,7 +65,20 @@
                 </span>
             </li>
         {% empty %}
-            <li>Todavía no hay ítems en esta plantilla.</li>
+            <li>
+                <div class="vt-empty">
+                    <p>Todavía no hay ítems en esta plantilla.</p>
+                    <small>
+                        Cada ítem es una pregunta que el técnico responde en el celular:
+                        OK/Falla, un número con rango, o una observación escrita.
+                    </small>
+                    {% if can_manage %}
+                        <a href="{% url 'checklistitem_create' template.pk %}" role="button">Agregar el primero</a>
+                    {% endif %}
+                </div>
+            </li>
         {% endfor %}
     </ul>
+
+    <p><a href="{% url 'checklisttemplate_list' %}">&larr; Volver a las plantillas</a></p>
 {% endblock %}

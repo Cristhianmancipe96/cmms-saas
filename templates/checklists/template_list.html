@@ -46,7 +46,24 @@
                 </a>
             </li>
         {% empty %}
-            <li>No hay plantillas con esos filtros.</li>
+            <li>
+                <div class="vt-empty">
+                    {% if is_filtered %}
+                        <p>No hay plantillas con esos filtros.</p>
+                        <small>Prueba con otra categoría o quita el filtro.</small>
+                        <a href="{% url 'checklisttemplate_list' %}" role="button" class="secondary outline">Ver todas</a>
+                    {% else %}
+                        <p>Todavía no hay plantillas de checklist.</p>
+                        <small>
+                            Una plantilla es la lista de lo que hay que revisar. Se copia a cada
+                            OT al crearla, y esa copia ya no cambia: es la evidencia de auditoría.
+                        </small>
+                        {% if user.role == "admin" or user.role == "supervisor" %}
+                            <a href="{% url 'checklisttemplate_create' %}" role="button">Crear la primera</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </li>
         {% endfor %}
     </ul>
 {% endblock %}

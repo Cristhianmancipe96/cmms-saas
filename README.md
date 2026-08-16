@@ -7,7 +7,10 @@ companies that own machinery but still run maintenance on paper — or not at al
 need equipment records, preventive schedules and audit-ready evidence (ISO 9001,
 Colombian SG-SST, INVIMA/GMP for food packaging).
 
-**Status:** spec phase (Phase 0). Built in public as a portfolio + commercial project.
+**Status:** Phase 1 (MVP) built — assets, QR, preventive plans and scheduler, work orders,
+PDFs and email, failure requests, audit log, KPI dashboard. See
+[docs/briefs/STATUS.md](docs/briefs/STATUS.md) for what has landed, and
+[Try it in five minutes](#try-it-in-five-minutes) to see it running with demo data.
 **Business model:** monthly subscription per company.
 
 ## The problem
@@ -60,17 +63,111 @@ flowchart LR
 
 See [docs/DECISIONS.md](docs/DECISIONS.md) for the decision log (ADRs).
 
-## Local development
+## Try it in five minutes
+
+### 1. From zero to a running server
 
 ```bash
-docker compose up -d db      # Postgres 16 — no Docker? see below
+docker compose up -d db      # Postgres 16 — no Docker? see "No Docker on your machine?" below
 cp .env.example .env         # then fill in SECRET_KEY (and DATABASE_URL if not using Docker)
 uv sync
 uv run python manage.py migrate
+uv run python manage.py seed_demo
+uv run python manage.py runserver 0.0.0.0:8000
+```
+
+`0.0.0.0` rather than the default: half of this demo happens on a phone, which needs to
+reach the machine over the LAN. Put that same address in `SITE_URL` **before** printing
+any QR label — the label is a sticker, and a sticker cannot be edited later.
+
+### 2. What `seed_demo` creates
+
+One fictional company — *Empaques La Sabana S.A.S.*, a flexible-packaging plant with two
+sites, eight machines and **ninety days of maintenance history**: preventive work orders
+closed on time and late, six breakdowns with downtime and cost, an hour meter that climbs,
+a backlog of different ages and two failure reports waiting for a decision. That history
+is what makes the dashboard show numbers instead of dashes.
+
+Four accounts, one per role. **The passwords are generated on every run and printed once,
+in the console** — they are deliberately not in the source code, so the only way to
+recover them is to run the command again (which is safe: it re-uses everything and only
+renews the passwords).
+
+| Username | Role | What they demo |
+|---|---|---|
+| `sabana.admin` | Administrador | Equipment, plans, users, audit log |
+| `sabana.super` | Supervisor | Assigning, verifying, converting failure reports |
+| `sabana.tecnico` | Técnico | The phone: «Mis OTs», checklist, photos, hour meter |
+| `sabana.oficina` | Administrativo | Reporting a failure without touching a work order |
+
+The command is **idempotent** (running it twice creates nothing new — the same
+`get_or_create` discipline as the scheduler) and it **refuses to run with `DEBUG=False`**
+unless you pass `--force`: a demo company inside a customer's database cannot be removed,
+because verified work orders and audit rows are immutable by design. All of its data is
+invented; the catalogue lives in [`apps/core/demo_data.py`](apps/core/demo_data.py) and a
+test reads that file to keep it that way.
+
+It writes no audit rows on purpose — the audit log records what *people* did, and the
+screen fills up the moment the demo touches anything.
+
+### 3. The five-minute script
+
+Browser on the laptop, phone in hand, both logged out to start.
+
+| # | ~ | Who | Do this |
+|---|---|---|---|
+| 1 | 0:30 | `sabana.admin` | Log in → **Tablero**. Six indicators with real numbers. Switch the period, filter by sede. Scroll to the ageing backlog and the cost per machine: *"this is the plant this morning"*. |
+| 2 | 0:45 | | **Equipos → FLW-01**. The hoja de vida: technical sheet, plans, hour meter, intervention history. Open **Etiqueta** — that is the sticker that goes on the machine. |
+| 3 | 1:00 | phone | Scan that QR **logged out**: only the plate, code and name, nothing else. Log in on the phone as `sabana.tecnico` and scan again: the live record, its open work orders, and the button to report a failure. |
+| 4 | 1:30 | `sabana.tecnico` | **Mis OTs** → an overdue one → **Iniciar**. Tick the checklist. Type `8,4` bar on the 5–7 bar item: it turns to **Falla** by itself — the technician records what the gauge says, the product decides what it means. Attach a photo from the camera, then **Terminar** with the downtime and the cost. |
+| 5 | 0:45 | `sabana.super` | Open that same OT → **Verificar**. It seals: whoever executed it cannot verify it, and once verified nobody can edit it. Download the report PDF (or email it) — that is the page an auditor asks for. |
+| 6 | 0:30 | `sabana.oficina` → `sabana.super` | The office reports a failure from the equipment record. The supervisor converts it into a corrective work order in one click — twice, to show the second click lands on the same OT instead of a duplicate. |
+
+Finish where you started: **Tablero** (the numbers moved) and, as `sabana.admin`,
+**Auditoría** — every step of the last five minutes, with who did it and when, in a table
+that cannot be edited or deleted.
+
+**The encore, if there is time.** Open **CMP-01** (the compressor, the one machine that is
+scheduled by usage rather than by calendar), enter an hour-meter reading 40 h above the
+last one, and run `uv run python manage.py generate_work_orders`. A work order appears on
+its own: that is the plan doing its job at five in the morning, every day, without anybody
+remembering it. Closing an OT on that machine also asks the technician for the hours — the
+calendar-scheduled ones do not, because a field that is never relevant is a field people
+learn to skip.
+
+**Before you demo, check two things.** That the PDF engine is installed on the machine you
+will present from (see *PDFs: WeasyPrint needs system libraries* below) — without it the
+buttons in step 5 answer with a Spanish "falta el motor de impresión" message instead of a
+document. And that `SITE_URL` points at the address the phone can reach, or the QR in step
+3 will resolve to `localhost` on the phone and go nowhere.
+
+## Local development
+
+```bash
 uv run pytest -q             # tests
 uv run ruff check .          # lint
+uv run python manage.py migrate
 uv run python manage.py runserver
 ```
+
+### Tests and the clock
+
+`TIME_ZONE` is `America/Bogota`, five hours behind UTC, so after 19:00 local time the
+stored (UTC) timestamp of "today" already reads as tomorrow. Anything that compares a
+timestamp against a date — the report's evidence block, PM compliance, "is this work order
+overdue?" — is wrong by a day inside that window if it reads the wrong clock, and a test
+that builds its expectation with a bare `.strftime()` passes for nineteen hours a day and
+then reddens a build at night.
+
+So the suite pins the clock instead of hoping. `time-machine` is a dev dependency, and
+`apps/reports/tests/test_documents.py::NightShiftTests` runs the document assertions at
+**20:30 in Bogotá** — 01:30 UTC the next day. Rule of thumb when writing a new test: never
+`.strftime()` or `.date()` a stored datetime; go through `timezone.localtime(...)` /
+`timezone.localdate()`, which is what the templates' `|date:` filter does.
+
+The end-to-end smoke test — `apps/core/tests/test_golden_path.py` — walks the whole demo
+story through the HTTP client in one test, naming each step. If a change breaks any link
+in that chain, the failure says which one.
 
 ### PDFs: WeasyPrint needs system libraries
 
@@ -141,7 +238,9 @@ schtasks /Create /TN "CMMS generate_work_orders" /SC DAILY /ST 05:00 /TR "cmd /c
 Both print one line per company plus a total (`plans evaluated / created /
 skipped-existing`); that summary is what brief 08 forwards to n8n.
 
-No Docker on your machine? SQLite is not an option, not even for tests — create a free
+### No Docker on your machine?
+
+SQLite is not an option, not even for tests — create a free
 Postgres instance at [neon.tech](https://neon.tech) or [supabase.com](https://supabase.com)
 and point `DATABASE_URL` in `.env` at it instead of `docker compose`'s `db` service. On
 Supabase specifically, use the **session pooler** connection string (`*.pooler.supabase.com`,

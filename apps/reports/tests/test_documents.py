@@ -8,6 +8,10 @@ gets its own test (`test_pdf_output.py`); it only has to prove that bytes come
 out, not what they say.
 """
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+import time_machine
 from django.test import TestCase
 from django.utils import timezone
 
@@ -152,7 +156,13 @@ class WorkOrderReportTests(TestCase):
         assert "Verificó" in html
         assert "Ana Ríos" in html
         assert "Beto Cano" in html
-        assert self.work_order.finished_at.strftime("%d/%m/%Y") in html
+        # Brief 09 carry-over (09-P1). `|date:` renders in `TIME_ZONE`
+        # (America/Bogota), so the expectation has to be built in that timezone
+        # too. A bare `.strftime()` reads the UTC value stored in the column
+        # and agrees with the document for most of the day — then disagrees
+        # from 19:00 Bogotá onwards, when UTC has already rolled over to
+        # tomorrow. `NightShiftTests` below is the regression guard.
+        assert timezone.localtime(self.work_order.finished_at).strftime("%d/%m/%Y") in html
         assert timezone.localtime(self.work_order.verified_at).strftime("%H:%M") in html
 
     def test_every_checklist_item_appears_with_its_result(self):
@@ -218,3 +228,48 @@ class WorkOrderReportTests(TestCase):
 
         assert "<img src=x" not in html
         assert "&lt;img src=x" in html
+
+
+# 20:30 in Bogotá is 01:30 UTC the next day. Everything about this product that
+# compares a stored timestamp against a date — the report's evidence block, PM
+# compliance, "¿está vencida?" — is wrong by one day inside that window if it
+# forgets which clock it is reading.
+BOGOTA_NIGHT_SHIFT = datetime(2026, 3, 17, 20, 30, tzinfo=ZoneInfo("America/Bogota"))
+
+
+@time_machine.travel(BOGOTA_NIGHT_SHIFT, tick=False)
+class NightShiftTests(TestCase):
+    """Brief 09 carry-over (09-P1): the suite has to be green at 20:00 too.
+
+    The bug this guards against is not in the document — the template renders
+    through `|date:`, which converts to `TIME_ZONE` — it was in the test that
+    checked it, which built its expectation with a bare `.strftime()` on the
+    UTC value. That assertion agreed with the document for nineteen hours a day
+    and would have failed a CI run started after seven in the evening,
+    Colombian time: a red build with nothing wrong in the product, which is the
+    kind of failure that gets a test deleted.
+
+    Freezing the clock is what turns "it depends on when you run it" into a
+    fact. `time-machine` is a dev dependency; nothing in production imports it.
+    """
+
+    def setUp(self):
+        self.company = CompanyFactory(name="Alimentos del Valle S.A.S.")
+        self.work_order = executed_work_order(company=self.company)
+
+    def test_the_timestamp_really_is_stored_as_the_next_day_in_utc(self):
+        """The premise of the test below, asserted instead of assumed."""
+        assert self.work_order.finished_at.strftime("%d/%m/%Y %H:%M") == "18/03/2026 01:30"
+
+    def test_the_report_dates_the_work_on_the_plant_clock(self):
+        html = documents.build_work_order_report(self.work_order).html
+
+        assert "17/03/2026 20:30" in html
+        assert "18/03/2026" not in html, "el informe fechó el trabajo en UTC, no en Bogotá"
+
+    def test_the_asset_record_dates_the_intervention_on_the_plant_clock(self):
+        asset = self.work_order.asset
+        html = documents.build_asset_record(asset).html
+
+        assert "17/03/2026" in html
+        assert "18/03/2026" not in html

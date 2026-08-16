@@ -7,7 +7,7 @@
     {% if asset.has_documents %}
         <article role="alert" class="vt-alert vt-alert--error">
             Este equipo tiene documentos adjuntos y no se puede eliminar. Usa
-            "Dar de baja" en su lugar.
+            «Dar de baja» en su lugar.
         </article>
         <p><a href="{% url 'asset_detail' asset.pk %}" role="button">Volver</a></p>
     {% else %}

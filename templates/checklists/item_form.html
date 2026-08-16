@@ -10,7 +10,9 @@
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Guardar</button>
-        <a href="{% url 'checklisttemplate_detail' template.pk %}" role="button" class="secondary">Cancelar</a>
+        <div class="vt-actions">
+            <button type="submit">Guardar</button>
+            <a href="{% url 'checklisttemplate_detail' template.pk %}" role="button" class="secondary outline">Cancelar</a>
+        </div>
     </form>
 {% endblock %}

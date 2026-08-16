@@ -109,7 +109,7 @@ class Asset(CompanyScopedModel):
         if self.has_documents():
             raise AssetHasDocumentsError(
                 "No se puede eliminar un equipo con documentos adjuntos. "
-                "Usa 'Dar de baja' en su lugar."
+                "Usa «Dar de baja» en su lugar."
             )
         return super().delete(*args, **kwargs)
 

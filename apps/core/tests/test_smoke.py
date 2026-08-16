@@ -37,11 +37,18 @@ class HomeViewTests(TestCase):
         assert response.status_code == 302
         assert response.url.startswith(reverse("login"))
 
-    def test_authenticated_user_gets_200(self):
+    def test_authenticated_user_lands_on_their_own_starting_points(self):
+        user = UserFactory()  # a technician
         client = Client()
-        client.force_login(UserFactory())
+        client.force_login(user)
 
         response = client.get("/")
+        page = response.content.decode()
 
         assert response.status_code == 200
-        assert "hola" in response.content.decode()
+        assert user.company.name in page
+        assert "Mis OTs" in page
+        # Brief 10 polish: the landing page offers what this role can act on.
+        # A technician has no dashboard (no company-wide KPIs on a plant-floor
+        # phone), exactly as base.html's nav decides.
+        assert reverse("kpi_dashboard") not in page

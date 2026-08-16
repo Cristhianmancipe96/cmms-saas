@@ -7,6 +7,9 @@
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Crear usuario</button>
+        <div class="vt-actions">
+            <button type="submit">Crear usuario</button>
+            <a href="{% url 'user_list' %}" role="button" class="secondary outline">Cancelar</a>
+        </div>
     </form>
 {% endblock %}

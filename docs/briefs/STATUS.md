@@ -13,5 +13,5 @@ Execute in order — each brief depends on all previous ones unless noted.
 - [x] 07 — PDFs (asset record, work-order report) and email
 - [x] 08 — Failure requests, audit log, n8n webhook stub
 - [x] 09 — Dashboard and KPIs in raw SQL
-- [ ] 10 — Demo seeds, E2E smoke, polish
+- [x] 10 — Demo seeds, E2E smoke, polish
 - [ ] 11 — Security hardening and deploy readiness
