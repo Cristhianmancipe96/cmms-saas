@@ -57,6 +57,21 @@
   --vt-z-modal: 310;
   --vt-z-toast: 400;
   --vt-z-tooltip: 500;
+  /* The mobile nav scrim sits behind the dropdown panel but above ordinary
+     page content — its own named tier, brief 11d. */
+  --vt-z-nav-scrim: 90;
+
+  /* System monospace stack — no webfont, so this costs nothing over the
+     network. Used for metric values and row identifiers (brief 11d); see
+     Typography below for why this file never loads a webfont at all. */
+  --vt-mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", "Liberation Mono", monospace;
+
+  /* Desktop sidebar width (brief 11d). One number, named once. */
+  --vt-sidebar-w: 16rem;
+
+  /* Sidebar/hamburger breakpoint, matching the reference product this brief
+     adapts (Tallaje) — used as a literal 64rem in every media query below
+     since custom properties can't be interpolated into a media query. */
 }
 
 /* --------------------------------------------------------------------------
@@ -220,7 +235,11 @@
 }
 
 /* --------------------------------------------------------------------------
-   4. Top bar — brand chrome (navy in BOTH themes; the brand is constant)
+   4. Top bar — mobile brand chrome (navy in BOTH themes; the brand is
+   constant). This is the *mobile* nav now (brief 11d) — at >=64rem section
+   11 hides it and shows the sidebar instead. The bar still renders in every
+   response regardless of viewport (docs/design/DESIGN.md, "One shell, two
+   navs, never a parallel page"); only CSS decides which one paints.
    -------------------------------------------------------------------------- */
 .vt-topbar {
   background: var(--vt-navy-800);
@@ -229,22 +248,23 @@
   top: 0;
   z-index: var(--vt-z-sticky);
   border-bottom: 1px solid var(--vt-navy-700);
-  /* Pico pads `body > header` vertically, which made the bar 89px tall while
-     everything (including this file) described it as 3.5rem. The execution
-     screen's sticky machine bar has to offset itself by the real height, so
-     the bar is pinned to exactly --vt-topbar-h instead of being 33px of
-     accidental padding taller than advertised. */
   padding-block: 0;
-  height: var(--vt-topbar-h);
 }
 
-.vt-topbar > nav {
+.vt-topbar-row {
+  /* the containing block for the dropdown panel and its scrim, both
+     positioned below (4b) */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 3.5rem;
-  padding-block: 0;
+  /* Pico pads `body > header` vertically, which made the bar 89px tall while
+     everything (including this file) described it as 3.5rem. The execution
+     screen's sticky machine bar has to offset itself by the real height, so
+     the row is pinned to exactly --vt-topbar-h instead of being 33px of
+     accidental padding taller than advertised. */
+  height: var(--vt-topbar-h);
 }
 
 /* Brand lockup: mark + VECTRON / MANAGEMENT (mirrors the logo hierarchy) */
@@ -273,66 +293,95 @@
   text-transform: uppercase;
 }
 
-/* Nav list. Brief 05 adds two work-order destinations, and nine links do not
-   fit a 390px row. It SCROLLS rather than wraps, on purpose: wrapping makes
-   the bar two or three rows tall depending on role and viewport, and the
-   execution screen's sticky machine bar has to sit at a known offset under
-   it. A constant 3.5rem bar is worth one swipe. */
+/* --------------------------------------------------------------------------
+   4b. Mobile menu — checkbox-hack disclosure, zero JavaScript (brief 11d).
+   The checkbox (`.vt-menu-toggle`) is visually hidden with `.vt-sr-only`,
+   not `display:none`, so it stays reachable by Tab and announces its own
+   checked/unchecked state to a screen reader; its visible stand-in is the
+   `.vt-menu-btn` label right after it in the DOM, which toggles it natively
+   on click — no absolute-positioned overlay needed. The scrim and the panel
+   are cousins of the checkbox, not siblings (both live outside
+   `.vt-topbar-row`), so `:has()` on the shared `.vt-topbar` ancestor reacts
+   to `:checked` instead of a sibling combinator that couldn't reach them.
+   -------------------------------------------------------------------------- */
+.vt-menu-btn {
+  display: grid;
+  place-items: center;
+  width: var(--vt-tap);
+  height: var(--vt-tap);
+  flex-shrink: 0;
+  border-radius: var(--vt-radius);
+  color: var(--vt-ink-on-dark);
+  cursor: pointer;
+}
+.vt-menu-toggle:focus-visible + .vt-menu-btn {
+  outline: 2px solid var(--vt-orange-500);
+  outline-offset: 2px;
+}
+.vt-menu-icon-close { display: none; }
+.vt-menu-toggle:checked + .vt-menu-btn .vt-menu-icon-open { display: none; }
+.vt-menu-toggle:checked + .vt-menu-btn .vt-menu-icon-close { display: block; }
+
+.vt-menu-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: var(--vt-z-nav-scrim);
+  background: color-mix(in srgb, var(--vt-navy-950) 55%, transparent);
+  cursor: default;
+}
+.vt-topbar:has(.vt-menu-toggle:checked) .vt-menu-scrim { display: block; }
+
+/* The dropdown panel. Brief 05's nine-link scrolling row is gone — a
+   vertical list has no width to run out of — so this replaces that rule
+   entirely rather than layering on top of it. */
 .vt-nav {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.125rem;
   list-style: none;
   margin: 0;
-  padding: 0;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;         /* the bar is 3.5rem tall; a scrollbar in it
-                                    would eat a third of the tap target */
+  padding: 0.625rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: var(--vt-z-dropdown);
+  background: var(--vt-navy-800);
+  border-bottom: 1px solid var(--vt-navy-700);
+  box-shadow: 0 16px 32px oklch(0.15 0.02 250 / 0.35);
+  max-height: calc(100dvh - var(--vt-topbar-h));
+  overflow-y: auto;
 }
-.vt-nav::-webkit-scrollbar { display: none; }
-.vt-nav li { flex-shrink: 0; }
-@media (max-width: 40rem) {
-  .vt-nav { gap: 0.875rem; }
-}
-.vt-nav li { margin: 0; padding: 0; list-style: none; display: flex; align-items: stretch; }
+.vt-topbar:has(.vt-menu-toggle:checked) .vt-nav { display: flex; }
+.vt-nav li { margin: 0; padding: 0; list-style: none; }
 .vt-nav form { margin: 0; }
 
-/* "Salir" as a quiet text button that reads like a nav link */
+/* Links and the "Salir" button read as the same kind of row: icon, label,
+   comfortable tap height, full width. */
+.vt-nav a,
 .vt-logout {
-  margin: 0;
-  padding: 0.4rem 0.75rem;
-  width: auto;
-  font-size: 0.9375rem;
-  background: transparent;
-  color: var(--vt-muted-on-dark);
-  border: 1px solid var(--vt-navy-600);
-  border-radius: var(--vt-radius);
-}
-.vt-logout:is(:hover, :focus-visible) {
-  background: var(--vt-navy-700);
-  border-color: var(--vt-navy-600);
-  color: var(--vt-ink-on-dark);
-}
-
-/* Nav links inside the bar */
-.vt-topbar a:not(.vt-brand) {
   display: flex;
   align-items: center;
-  border-radius: 0;
-  min-height: 3.5rem;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: var(--vt-tap-lg);
+  margin: 0;
+  padding: 0 0.75rem;
+  border-radius: var(--vt-radius);
   color: var(--vt-muted-on-dark);
   text-decoration: none;
   font-size: 0.9375rem;
-  padding: 0 0.25rem;
-  border-bottom: 2px solid transparent;
-  transition: color var(--vt-t-fast) var(--vt-ease-out);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  transition: background var(--vt-t-fast) var(--vt-ease-out), color var(--vt-t-fast) var(--vt-ease-out);
 }
-.vt-topbar a:not(.vt-brand):is(:hover, :focus-visible) { color: var(--vt-ink-on-dark); }
-.vt-topbar a[aria-current="page"] {
-  color: #FFFFFF;
-  border-bottom-color: var(--vt-orange-500);
+.vt-nav a:is(:hover, :focus-visible),
+.vt-logout:is(:hover, :focus-visible) {
+  background: var(--vt-navy-700);
+  color: var(--vt-ink-on-dark);
 }
 
 /* --------------------------------------------------------------------------
@@ -1323,3 +1372,385 @@ button:active, [role="button"]:active, input[type="submit"]:active { transform: 
    typing with gloves on is how an answer gets abandoned half-written. */
 .vt-check-item textarea,
 .vt-check-note textarea { font-size: 1rem; }
+
+/* --------------------------------------------------------------------------
+   11. Desktop shell and mobile navigation (brief 11d). See docs/design/
+   DESIGN.md, "Desktop shell and mobile navigation," for why each piece
+   below looks the way it does — this file is the implementation, that one
+   is the reasoning.
+   -------------------------------------------------------------------------- */
+
+/* 11a. Icon sprite. Symbols (templates/_icons.html) carry no fill/stroke of
+   their own, so every <use> inherits from whichever .vt-icon wraps it —
+   one place to change the whole set's weight. */
+.vt-icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.vt-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 11b. Shell: sidebar + main column. Nothing to do below the breakpoint —
+   the mobile top bar (section 4) already owns the full width there. */
+@media (min-width: 64rem) {
+  .vt-shell { display: flex; align-items: stretch; }
+  .vt-maincol { flex: 1 1 auto; min-width: 0; }
+}
+
+/* 11c. Sidebar. A neutral surface, not the top bar's navy — see DESIGN.md
+   for why a full-height column stays restrained while a 3.5rem bar could
+   afford to be brand-coloured. Hidden below the breakpoint; the mobile top
+   bar is hidden at or above it, so exactly one of the two ever paints. */
+.vt-sidebar { display: none; }
+@media (min-width: 64rem) {
+  .vt-topbar { display: none; }
+  .vt-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: var(--vt-sidebar-w);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    background: var(--pico-card-background-color);
+    border-right: 1px solid var(--pico-card-border-color);
+    overflow-y: auto;
+  }
+}
+
+.vt-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1.25rem 1.25rem 0.375rem;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+.vt-sidebar-brand:is(:hover, :focus-visible) { text-decoration: none; color: inherit; }
+.vt-sidebar-brand img { width: 1.75rem; height: 1.75rem; display: block; }
+.vt-sidebar-brand-name { display: flex; flex-direction: column; line-height: 1.15; }
+.vt-sidebar-brand-name b {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--vt-ink);
+}
+.vt-sidebar-brand-name small {
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  color: var(--vt-muted);
+  text-transform: uppercase;
+}
+.vt-sidebar-tenant {
+  flex-shrink: 0;
+  margin: 0 1.25rem 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  color: var(--vt-muted);
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vt-sidebar-nav { flex: 1 1 auto; padding: 0 0.75rem; }
+.vt-nav-group + .vt-nav-group { margin-top: 1.25rem; }
+.vt-nav-group-label {
+  margin: 0 0.5rem 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vt-muted);
+}
+/* align-items:stretch is explicit, not assumed: `.vt-sidebar-nav` is a real
+   <nav>, and Pico styles `nav ul` for its own horizontal navbar pattern
+   (align-items:center among other things) — this list sits inside that
+   selector's reach, so every cross-axis property this brief needs has to be
+   named here rather than relying on the flex initial value. */
+.vt-nav-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: stretch; gap: 0.125rem; }
+.vt-nav-group li { margin: 0; padding: 0; list-style: none; }
+
+.vt-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.5rem;
+  margin: 0;
+  padding: 0 0.625rem;
+  border-radius: var(--vt-radius);
+  color: var(--vt-ink);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: background var(--vt-t-fast) var(--vt-ease-out), color var(--vt-t-fast) var(--vt-ease-out);
+}
+.vt-sidebar-link:is(:hover, :focus-visible) {
+  background: var(--pico-card-sectioning-background-color);
+  color: var(--vt-ink);
+  text-decoration: none;
+}
+/* The one sanctioned solid use of brand orange outside a primary button —
+   "Theme strategy" above already lists "the active nav indicator" among
+   orange's uses, and this reuses the exact background/text pair already
+   validated for every primary button, so it needed no new contrast check. */
+.vt-sidebar-link[aria-current="page"] {
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+  font-weight: 600;
+}
+.vt-sidebar-link[aria-current="page"]:is(:hover, :focus-visible) {
+  background: var(--pico-primary-hover-background);
+  color: var(--pico-primary-inverse);
+}
+
+/* 11d. Account block, pinned to the bottom by `.vt-sidebar-nav`'s flex:1
+   above it. Same checkbox-hack-plus-label disclosure as the mobile menu
+   (4b) — one interaction pattern, two places — but this panel is a small
+   flyout that opens *upward* from the trigger, not a full-viewport drawer. */
+.vt-sidebar-account { position: relative; flex-shrink: 0; border-top: 1px solid var(--pico-muted-border-color); padding: 0.625rem; }
+.vt-account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: var(--vt-radius);
+  cursor: pointer;
+  color: inherit;
+}
+.vt-account-trigger:hover { background: var(--pico-card-sectioning-background-color); }
+.vt-account-toggle:focus-visible + .vt-account-trigger {
+  outline: 2px solid var(--vt-orange-500);
+  outline-offset: 2px;
+}
+.vt-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--vt-orange-100);
+  color: var(--vt-orange-800);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+:where([data-theme="dark"]) .vt-avatar { background: color-mix(in srgb, var(--vt-orange-600) 30%, var(--vt-navy-900)); color: var(--vt-orange-300); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .vt-avatar { background: color-mix(in srgb, var(--vt-orange-600) 30%, var(--vt-navy-900)); color: var(--vt-orange-300); }
+}
+.vt-account-text { min-width: 0; flex: 1 1 auto; text-align: left; }
+.vt-account-text strong { display: block; font-size: 0.875rem; font-weight: 600; color: var(--vt-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-account-text small { display: block; font-size: 0.75rem; color: var(--vt-muted); }
+.vt-account-chevron { color: var(--vt-muted); transition: transform var(--vt-t-fast) var(--vt-ease-out); }
+.vt-sidebar-account:has(.vt-account-toggle:checked) .vt-account-chevron { transform: rotate(180deg); }
+
+.vt-account-panel {
+  display: none;
+  flex-direction: column;
+  gap: 0.125rem;
+  position: absolute;
+  left: 0.625rem;
+  right: 0.625rem;
+  bottom: calc(100% + 0.375rem);
+  padding: 0.375rem;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-background-color);
+  box-shadow: var(--pico-card-box-shadow);
+}
+.vt-sidebar-account:has(.vt-account-toggle:checked) .vt-account-panel { display: flex; }
+.vt-account-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 2.5rem;
+  margin: 0;
+  padding: 0 0.625rem;
+  border-radius: var(--vt-radius);
+  color: var(--vt-ink);
+  text-decoration: none;
+  font-size: 0.875rem;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.vt-account-item:is(:hover, :focus-visible) { background: var(--pico-card-sectioning-background-color); text-decoration: none; color: var(--vt-ink); }
+.vt-account-item--btn { color: var(--vt-danger-700); }
+:where([data-theme="dark"]) .vt-account-item--btn { color: var(--vt-danger-300); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .vt-account-item--btn { color: var(--vt-danger-300); }
+}
+
+/* 11e. Page header: title + one-sentence subtitle, primary actions to the
+   right instead of a loose <p> under the filters. Same markup at every
+   width — wraps to a stacked column when there's no room beside the title,
+   widens when there is; not a separate desktop layout. */
+.vt-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.vt-page-head-text { min-width: 0; }
+.vt-page-head-text h1 { margin: 0 0 0.25rem; }
+.vt-page-head-text p { margin: 0; max-width: 60ch; color: var(--vt-muted); }
+.vt-page-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.vt-page-head-actions :is(a[role="button"], button) { margin: 0; width: auto; }
+
+/* 11f. Full-width metric strip. Reuses brief 09's .vt-kpi-grid/.vt-kpi
+   (already a label/value/context <dl> triple) rather than naming a parallel
+   component. Below 64rem this is untouched — the existing two-per-row card
+   grid; at or above it, one flush row with hairline dividers between cells
+   instead of individually shadowed cards. */
+@media (min-width: 64rem) {
+  .vt-kpi-grid {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--vt-radius);
+    background: var(--pico-card-background-color);
+    box-shadow: var(--pico-card-box-shadow);
+    overflow: hidden;
+  }
+  .vt-kpi {
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 1rem 1.25rem;
+  }
+  .vt-kpi + .vt-kpi::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 1rem;
+    bottom: 1rem;
+    width: 1px;
+    background: var(--pico-muted-border-color);
+  }
+}
+/* The value in system monospace at every width — no webfont, so this costs
+   nothing over the plant-floor phone's network (Typography, above). */
+.vt-kpi-value,
+.vt-kpi-cop { font-family: var(--vt-mono); }
+
+/* 11g. Dense desktop rows. Unchanged on mobile (two stacked lines); at
+   >=64rem strong/small share one baseline-aligned line, and a leading
+   identifier gets its own treatment — muted, monospace, set off from the
+   name that follows — without re-templating every row from scratch (the
+   row partials already separate "the bold bit" from "the muted bit"; this
+   only wraps what was already first inside the bold bit). */
+.vt-row-id { font-family: var(--vt-mono); color: var(--vt-muted); font-weight: 600; }
+a.vt-row .vt-row-id { color: inherit; opacity: 0.7; }
+@media (min-width: 64rem) {
+  .vt-row-main { display: flex; align-items: baseline; gap: 0.625rem; min-width: 0; }
+  .vt-row-main strong { flex-shrink: 0; }
+  .vt-row-main small { flex: 1 1 auto; min-width: 0; }
+}
+
+/* 11h. Segmented control — the KPI period switcher. Radio inputs
+   (visually hidden with the existing .vt-sr-only, not re-hidden here)
+   styled as connected segments inside the same GET+HTMX form; the "Sede"
+   <select> is untouched. */
+.vt-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--pico-form-element-border-color);
+  border-radius: var(--vt-radius);
+  overflow: hidden;
+}
+.vt-segmented label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--vt-tap);
+  padding: 0 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--vt-muted);
+  background: var(--pico-form-element-background-color);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--vt-t-fast) var(--vt-ease-out), color var(--vt-t-fast) var(--vt-ease-out);
+}
+.vt-segmented label:not(:first-of-type) { border-left: 1px solid var(--pico-form-element-border-color); }
+.vt-segmented label:hover { background: var(--pico-card-sectioning-background-color); }
+.vt-segmented input:checked + label {
+  background: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+}
+.vt-segmented input:checked + label:hover { background: var(--pico-primary-hover-background); }
+.vt-segmented input:focus-visible + label {
+  outline: 2px solid var(--vt-orange-500);
+  outline-offset: -2px;
+}
+
+/* 11i. Login, two columns on desktop. The form panel (10b, untouched)
+   stays centered below the breakpoint; a brand panel appears beside it at
+   >=64rem — solid navy, one line of value proposition, three checked
+   benefits. This is the one screen in the product where full-bleed brand
+   colour is deliberate, the same call Tallaje's own /entrar makes: nobody
+   reads a login screen under a customer's nose the way they read the KPI
+   dashboard or a work order. */
+.vt-auth-brand { display: none; }
+@media (min-width: 64rem) {
+  /* <main class="container vt-auth-main"> (base.html, login page only)
+     drops Pico's max-width/padding instead of the usual vw/negative-margin
+     breakout trick — that trick's math depends on the vertical scrollbar's
+     width, which varies by OS/browser and produced a real horizontal
+     overflow on Windows. Removing the constraint at its source has no such
+     dependency. A login screen is the one place in this product a fixed
+     72ch/1100px reading measure doesn't apply. */
+  main.vt-auth-main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .vt-auth {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 100dvh;
+    padding-block: 0;
+  }
+  .vt-auth-panel { align-self: center; margin: 0 auto; }
+  .vt-auth-brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3rem;
+    background: var(--vt-navy-800);
+    color: var(--vt-ink-on-dark);
+  }
+  .vt-auth-brand-mark { display: flex; align-items: center; gap: 0.75rem; }
+  .vt-auth-brand-mark img { width: 2rem; height: 2rem; display: block; }
+  .vt-auth-brand-mark span { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: #FFFFFF; }
+  .vt-auth-brand-tagline {
+    margin: 0;
+    max-width: 24ch;
+    font-size: clamp(1.5rem, 2.2vw, 2.125rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: #FFFFFF;
+  }
+  .vt-auth-brand-benefits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+  .vt-auth-brand-benefits li { display: flex; align-items: center; gap: 0.625rem; color: var(--vt-ink-on-dark); font-size: 0.9375rem; }
+  .vt-auth-brand-benefits .vt-icon { color: var(--vt-orange-300); flex-shrink: 0; }
+}

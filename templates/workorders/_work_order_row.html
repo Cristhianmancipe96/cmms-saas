@@ -11,7 +11,7 @@ screens end up disagreeing about it.
     <a class="vt-row{% if wo.overdue %} vt-row--vencido{% endif %}"
        href="{% url 'workorder_detail' wo.pk %}">
         <span class="vt-row-main">
-            <strong>#{{ wo.pk }} · {% if show_asset %}{{ wo.asset.code }} — {% endif %}{{ wo.asset.name }}</strong>
+            <strong><span class="vt-row-id">#{{ wo.pk }}</span> {% if show_asset %}<span class="vt-row-id">{{ wo.asset.code }}</span> — {% endif %}{{ wo.asset.name }}</strong>
             <small>
                 {{ wo.get_type_display }} ·
                 {% if wo.due_date %}{{ wo.due_date|date:"d/m/Y" }}{% else %}Sin fecha{% endif %}

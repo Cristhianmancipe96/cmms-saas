@@ -3,7 +3,17 @@
 {% block title %}Equipos{% endblock %}
 
 {% block content %}
-    <h1>Equipos</h1>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Equipos</h1>
+            <p>La hoja de vida de cada máquina: su ficha, su historial y su código QR. {{ page_obj.paginator.count }} registrados.</p>
+        </div>
+        {% if user.role == "admin" or user.role == "supervisor" %}
+            <div class="vt-page-head-actions">
+                <a href="{% url 'asset_create' %}" role="button">Nuevo equipo</a>
+            </div>
+        {% endif %}
+    </div>
 
     <form method="get" class="vt-filters" role="search">
         <label class="vt-sr-only" for="filtro-buscar">Buscar</label>
@@ -49,17 +59,13 @@
         <button type="submit">Filtrar</button>
     </form>
 
-    {% if user.role == "admin" or user.role == "supervisor" %}
-        <p><a href="{% url 'asset_create' %}" role="button">Nuevo equipo</a></p>
-    {% endif %}
-
     <ul class="vt-list">
         {% for asset in assets %}
             <li>
                 <a class="vt-row" href="{% url 'asset_detail' asset.pk %}">
                     <span class="vt-row-main">
-                        <strong>{{ asset.name }}</strong>
-                        <small>{{ asset.code }} · {{ asset.site.name }} · {{ asset.category.name }}</small>
+                        <strong><span class="vt-row-id">{{ asset.code }}</span> {{ asset.name }}</strong>
+                        <small>{{ asset.site.name }} · {{ asset.category.name }}</small>
                     </span>
                     <span class="vt-row-side">
                         <span class="vt-badge vt-badge--criticidad-{{ asset.criticality }}">{{ asset.get_criticality_display }}</span>

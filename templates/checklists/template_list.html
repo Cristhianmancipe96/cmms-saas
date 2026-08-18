@@ -3,7 +3,17 @@
 {% block title %}Plantillas de checklist{% endblock %}
 
 {% block content %}
-    <h1>Plantillas de checklist</h1>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Plantillas de checklist</h1>
+            <p>Lo que hay que revisar en cada OT. Se copia al crearla; esa copia ya no cambia. {{ templates|length }} registradas.</p>
+        </div>
+        {% if user.role == "admin" or user.role == "supervisor" %}
+            <div class="vt-page-head-actions">
+                <a href="{% url 'checklisttemplate_create' %}" role="button">Nueva plantilla</a>
+            </div>
+        {% endif %}
+    </div>
 
     <form method="get" class="grid">
         <select name="category">
@@ -21,10 +31,6 @@
         </select>
         <button type="submit">Filtrar</button>
     </form>
-
-    {% if user.role == "admin" or user.role == "supervisor" %}
-        <p><a href="{% url 'checklisttemplate_create' %}" role="button">Nueva plantilla</a></p>
-    {% endif %}
 
     <ul class="vt-list">
         {% for template in templates %}

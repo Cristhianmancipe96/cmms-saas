@@ -3,8 +3,15 @@
 {% block title %}Usuarios{% endblock %}
 
 {% block content %}
-    <h1>Usuarios</h1>
-    <a href="{% url 'user_invite' %}" role="button">Invitar usuario</a>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Usuarios</h1>
+            <p>Quién tiene cuenta en la empresa, con qué rol. {{ company_users|length }} en total.</p>
+        </div>
+        <div class="vt-page-head-actions">
+            <a href="{% url 'user_invite' %}" role="button">Invitar usuario</a>
+        </div>
+    </div>
     <table>
         <thead>
             <tr>

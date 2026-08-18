@@ -8,7 +8,7 @@ the pending ones without reading the badges one by one.
     <a class="vt-row{% if solicitud.is_open %} vt-row--pendiente{% endif %}"
        href="{% url 'maintenancerequest_detail' solicitud.pk %}">
         <span class="vt-row-main">
-            <strong>#{{ solicitud.pk }} · {{ solicitud.asset.code }} — {{ solicitud.asset.name }}</strong>
+            <strong><span class="vt-row-id">#{{ solicitud.pk }}</span> <span class="vt-row-id">{{ solicitud.asset.code }}</span> — {{ solicitud.asset.name }}</strong>
             <small>
                 {{ solicitud.created_at|date:"d/m/Y H:i" }}
                 {% if show_reporter %} · {{ solicitud.reported_by }}{% endif %}

@@ -17,10 +17,12 @@ makes the rows immutable: the model refuses every write after the insert
 {% block title %}Auditoría{% endblock %}
 
 {% block content %}
-    <hgroup>
-        <h1>Registro de auditoría</h1>
-        <p>Quién hizo qué, y cuándo. Las filas no se editan ni se borran.</p>
-    </hgroup>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Registro de auditoría</h1>
+            <p>Quién hizo qué, y cuándo. Las filas no se editan ni se borran. {{ page_obj.paginator.count }} movimientos con estos filtros.</p>
+        </div>
+    </div>
 
     <form method="get" class="vt-filters" role="search">
         <label class="vt-sr-only" for="filtro-usuario">Usuario</label>

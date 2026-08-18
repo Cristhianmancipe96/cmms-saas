@@ -3,16 +3,26 @@
 {% block title %}Planes de mantenimiento{% endblock %}
 
 {% block content %}
-    <hgroup>
-        <h1>Planes de mantenimiento</h1>
-        <p>
-            {% if overdue_count %}
-                {{ overdue_count }} plan{{ overdue_count|pluralize:"es" }} vencido{{ overdue_count|pluralize }}.
-            {% else %}
-                Ningún plan vencido.
-            {% endif %}
-        </p>
-    </hgroup>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Planes de mantenimiento</h1>
+            <p>Lo preventivo: cada cuánto se toca cada equipo, por calendario o por horómetro.</p>
+        </div>
+    </div>
+
+    <dl class="vt-kpi-grid">
+        <div class="vt-kpi">
+            <dt>Planes listados</dt>
+            <dd><span class="vt-kpi-value">{{ page_obj.paginator.count }}</span></dd>
+        </div>
+        <div class="vt-kpi">
+            <dt>Vencidos</dt>
+            <dd>
+                <span class="vt-kpi-value {% if overdue_count %}vt-kpi-value--alerta{% endif %}">{{ overdue_count }}</span>
+                <small class="vt-kpi-meta">{% if overdue_count %}sin cumplir{% else %}ninguno vencido{% endif %}</small>
+            </dd>
+        </div>
+    </dl>
 
     <form method="get" class="grid" role="search">
         <label class="vt-sr-only" for="filtro-estado">Estado</label>

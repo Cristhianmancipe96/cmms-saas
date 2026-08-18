@@ -10,20 +10,34 @@ and the answers they got.
 {% block title %}Solicitudes{% endblock %}
 
 {% block content %}
-    <hgroup>
-        <h1>{% if can_review %}Solicitudes de mantenimiento{% else %}Mis reportes de falla{% endif %}</h1>
-        <p>
-            {% if can_review %}
-                {% if open_count %}
-                    {{ open_count }} sin revisar.
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>{% if can_review %}Solicitudes de mantenimiento{% else %}Mis reportes de falla{% endif %}</h1>
+            <p>
+                {% if can_review %}
+                    Las fallas que ha reportado la gente, para decidir si abren una OT correctiva.
                 {% else %}
-                    Ninguna sin revisar.
+                    Las fallas que has reportado y en qué quedaron. {{ page_obj.paginator.count }} en total.
                 {% endif %}
-            {% else %}
-                Las fallas que has reportado y en qué quedaron.
-            {% endif %}
-        </p>
-    </hgroup>
+            </p>
+        </div>
+    </div>
+
+    {% if can_review %}
+        <dl class="vt-kpi-grid">
+            <div class="vt-kpi">
+                <dt>Solicitudes listadas</dt>
+                <dd><span class="vt-kpi-value">{{ page_obj.paginator.count }}</span></dd>
+            </div>
+            <div class="vt-kpi">
+                <dt>Sin revisar</dt>
+                <dd>
+                    <span class="vt-kpi-value {% if open_count %}vt-kpi-value--alerta{% endif %}">{{ open_count }}</span>
+                    <small class="vt-kpi-meta">{% if open_count %}esperando decisión{% else %}ninguna pendiente{% endif %}</small>
+                </dd>
+            </div>
+        </dl>
+    {% endif %}
 
     <form method="get" class="vt-filters" role="search">
         <label class="vt-sr-only" for="filtro-estado">Estado</label>

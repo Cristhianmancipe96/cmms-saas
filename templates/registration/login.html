@@ -1,9 +1,32 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Iniciar sesión{% endblock %}
 
 {% block content %}
     <div class="vt-auth">
+        <div class="vt-auth-brand">
+            <span class="vt-auth-brand-mark">
+                <img src="{% static 'img/vectron-mark.svg' %}" alt="" width="32" height="32">
+                <span>VECTRON Management</span>
+            </span>
+            <p class="vt-auth-brand-tagline">Cuidamos tu maquinaria, impulsamos tu producción.</p>
+            <ul class="vt-auth-brand-benefits">
+                <li>
+                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-mis-ots"></use></svg>
+                    Hoja de vida de cada equipo, con su código QR
+                </li>
+                <li>
+                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-checklists"></use></svg>
+                    Órdenes de trabajo con checklist y evidencia fotográfica
+                </li>
+                <li>
+                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-tablero"></use></svg>
+                    Disponibilidad, MTBF, MTTR y backlog en un tablero
+                </li>
+            </ul>
+        </div>
+
         <div class="vt-auth-panel">
             <h1>Iniciar sesión</h1>
             {% if form.errors %}

@@ -3,16 +3,26 @@
 {% block title %}Órdenes de trabajo{% endblock %}
 
 {% block content %}
-    <hgroup>
-        <h1>Órdenes de trabajo</h1>
-        <p>
-            {% if overdue_count %}
-                {{ overdue_count }} vencida{{ overdue_count|pluralize }} sin terminar.
-            {% else %}
-                Ninguna OT vencida.
-            {% endif %}
-        </p>
-    </hgroup>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Órdenes de trabajo</h1>
+            <p>Preventivas, correctivas e inspecciones de toda la empresa, con quién las tiene y para cuándo.</p>
+        </div>
+    </div>
+
+    <dl class="vt-kpi-grid">
+        <div class="vt-kpi">
+            <dt>OTs listadas</dt>
+            <dd><span class="vt-kpi-value">{{ page_obj.paginator.count }}</span></dd>
+        </div>
+        <div class="vt-kpi">
+            <dt>Vencidas</dt>
+            <dd>
+                <span class="vt-kpi-value {% if overdue_count %}vt-kpi-value--alerta{% endif %}">{{ overdue_count }}</span>
+                <small class="vt-kpi-meta">{% if overdue_count %}sin terminar{% else %}ninguna vencida{% endif %}</small>
+            </dd>
+        </div>
+    </dl>
 
     <form method="get" class="vt-filters" role="search">
         <label class="vt-sr-only" for="filtro-estado">Estado</label>

@@ -1,0 +1,77 @@
+{% comment %}
+Own icon sprite for brief 11d — 24x24 grid, 1.75 stroke, round joins/caps,
+currentColor. Defined once, referenced everywhere with <use> (docs/design/
+DESIGN.md, "Icons: one inline SVG sprite"). Adapted in spirit from Tallaje's
+icon system (same visual language) but every path here is original geometry,
+not a copy of its component. No icon font, no CDN library.
+{% endcomment %}
+<svg class="vt-icon-sprite" aria-hidden="true" focusable="false">
+    <symbol id="vt-icon-tablero" viewBox="0 0 24 24">
+        <path d="M4 21h16M4 21V3" />
+        <path d="M8 21v-7M13 21v-11M18 21v-4" />
+    </symbol>
+    <symbol id="vt-icon-mis-ots" viewBox="0 0 24 24">
+        <path d="M9 3h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+        <path d="M8 4H6a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2" />
+        <path d="m8.5 13 2.5 2.5 4.5-5" />
+    </symbol>
+    <symbol id="vt-icon-ots" viewBox="0 0 24 24">
+        <path d="M9 3h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+        <path d="M8 4H6a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-2" />
+        <path d="M8 13h8M8 17h5" />
+    </symbol>
+    <symbol id="vt-icon-solicitudes" viewBox="0 0 24 24">
+        <path d="M4 12V6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6" />
+        <path d="M4 12h4.5l1.5 2.5h4L15.5 12H20" />
+        <path d="M4 12v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6" />
+    </symbol>
+    <symbol id="vt-icon-sitios" viewBox="0 0 24 24">
+        <path d="M12 21s7-7.5 7-12a7 7 0 0 0-14 0c0 4.5 7 12 7 12Z" />
+        <circle cx="12" cy="9" r="2.25" />
+    </symbol>
+    <symbol id="vt-icon-equipos" viewBox="0 0 24 24">
+        <path d="M12 3 4 7v10l8 4 8-4V7Z" />
+        <path d="M4 7l8 4 8-4" />
+        <path d="M12 11v10" />
+    </symbol>
+    <symbol id="vt-icon-planes" viewBox="0 0 24 24">
+        <path d="M5 4h14a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" />
+        <path d="M8 2.5v3M16 2.5v3M4 10h16" />
+    </symbol>
+    <symbol id="vt-icon-checklists" viewBox="0 0 24 24">
+        <path d="m4 6.5 1.5 1.5L8 5" />
+        <path d="M11 6.5h9" />
+        <path d="m4 12.5 1.5 1.5L8 11" />
+        <path d="M11 12.5h9" />
+        <path d="m4 18.5 1.5 1.5L8 17" />
+        <path d="M11 18.5h9" />
+    </symbol>
+    <symbol id="vt-icon-usuarios" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="3.25" />
+        <path d="M3.5 20v-1a5 5 0 0 1 5-5h1a5 5 0 0 1 5 5v1" />
+        <path d="M16 3.35a3.25 3.25 0 0 1 0 6.3" />
+        <path d="M15 13.7c2.6.4 4.5 2.4 4.5 4.9V20" />
+    </symbol>
+    <symbol id="vt-icon-auditoria" viewBox="0 0 24 24">
+        <path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6Z" />
+        <path d="m9 12 2 2 4-4.5" />
+    </symbol>
+    <symbol id="vt-icon-password" viewBox="0 0 24 24">
+        <rect x="5" y="11" width="14" height="9" rx="1.5" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </symbol>
+    <symbol id="vt-icon-salir" viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <path d="M16 17l5-5-5-5" />
+        <path d="M21 12H9" />
+    </symbol>
+    <symbol id="vt-icon-menu" viewBox="0 0 24 24">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+    </symbol>
+    <symbol id="vt-icon-close" viewBox="0 0 24 24">
+        <path d="M6 6l12 12M18 6L6 18" />
+    </symbol>
+    <symbol id="vt-icon-chevron" viewBox="0 0 24 24">
+        <path d="m6 9 6 6 6-6" />
+    </symbol>
+</svg>

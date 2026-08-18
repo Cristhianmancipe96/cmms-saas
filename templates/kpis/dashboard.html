@@ -12,10 +12,12 @@ enhancement second.
 {% block title %}Tablero{% endblock %}
 
 {% block content %}
-    <hgroup>
-        <h1>Tablero de mantenimiento</h1>
-        <p>Los seis indicadores del período, calculados sobre las OTs cerradas.</p>
-    </hgroup>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Tablero de mantenimiento</h1>
+            <p>Los seis indicadores del período, calculados sobre las OTs cerradas.</p>
+        </div>
+    </div>
 
     <form method="get"
           class="vt-filters"
@@ -26,12 +28,13 @@ enhancement second.
           hx-trigger="change, submit"
           hx-push-url="true">
         <div class="vt-field-inline">
-            <label for="filtro-periodo">Período</label>
-            <select name="periodo" id="filtro-periodo">
+            <span id="periodo-label">Período</span>
+            <div class="vt-segmented" role="radiogroup" aria-labelledby="periodo-label">
                 {% for value, label in period_choices %}
-                    <option value="{{ value }}" {% if period.key == value %}selected{% endif %}>{{ label }}</option>
+                    <input class="vt-sr-only" type="radio" name="periodo" id="periodo-{{ value }}" value="{{ value }}" {% if period.key == value %}checked{% endif %}>
+                    <label for="periodo-{{ value }}">{{ label }}</label>
                 {% endfor %}
-            </select>
+            </div>
         </div>
 
         <div class="vt-field-inline">

@@ -12,60 +12,246 @@
     <script src="{% static 'vendor/htmx/htmx.min.js' %}" defer></script>
 </head>
 <body>
-    <header class="vt-topbar">
-        <nav class="container">
-            <a class="vt-brand" href="{% url 'home' %}">
-                <img src="{% static 'img/vectron-mark.svg' %}" alt="" width="28" height="28">
-                <span class="vt-brand-name">
-                    <b>VECTRON</b>
-                    <small>Management</small>
-                </span>
-            </a>
-            <ul class="vt-nav">
-                {% if user.is_authenticated %}
-                    {% comment %}
-                    A platform admin has no company of their own, so the
-                    dashboard has no company_id to report on and answers 403:
-                    it is not offered to them either.
-                    {% endcomment %}
-                    {% if user.company_id and user.role != "technician" %}
-                        <li><a href="{% url 'kpi_dashboard' %}">Tablero</a></li>
-                    {% endif %}
-                    {% if user.role != "staff" %}
-                        <li><a href="{% url 'workorder_mine' %}">Mis OTs</a></li>
-                    {% endif %}
-                    <li><a href="{% url 'workorder_list' %}">OTs</a></li>
-                    <li><a href="{% url 'maintenancerequest_list' %}">Solicitudes</a></li>
-                    <li><a href="{% url 'site_list' %}">Sitios</a></li>
-                    <li><a href="{% url 'asset_list' %}">Equipos</a></li>
-                    <li><a href="{% url 'maintenanceplan_list' %}">Planes</a></li>
-                    <li><a href="{% url 'checklisttemplate_list' %}">Checklists</a></li>
+    {% include "_icons.html" %}
+
+    {% if user.is_authenticated %}
+        {% comment %}
+        A platform admin has no company of their own, so the dashboard has no
+        company_id to report on and answers 403: it is not offered to them
+        either. Same condition, both navs below — see docs/design/DESIGN.md
+        "One shell, two navs, never a parallel page" for why it's written
+        twice instead of shared.
+        {% endcomment %}
+        <div class="vt-shell">
+            <aside class="vt-sidebar">
+                <a class="vt-sidebar-brand" href="{% url 'home' %}">
+                    <img src="{% static 'img/vectron-mark.svg' %}" alt="" width="28" height="28">
+                    <span class="vt-sidebar-brand-name">
+                        <b>VECTRON</b>
+                        <small>Management</small>
+                    </span>
+                </a>
+                {% if user.company %}<p class="vt-sidebar-tenant">{{ user.company.name }}</p>{% endif %}
+
+                <nav class="vt-sidebar-nav" aria-label="Menú principal">
+                    <div class="vt-nav-group">
+                        <p class="vt-nav-group-label">Operación</p>
+                        <ul>
+                            {% if user.company_id and user.role != "technician" %}
+                                <li>
+                                    <a class="vt-sidebar-link" href="{% url 'kpi_dashboard' %}"
+                                       {% if request.resolver_match.url_name == "kpi_dashboard" %}aria-current="page"{% endif %}>
+                                        <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-tablero"></use></svg>
+                                        Tablero
+                                    </a>
+                                </li>
+                            {% endif %}
+                            {% if user.role != "staff" %}
+                                <li>
+                                    <a class="vt-sidebar-link" href="{% url 'workorder_mine' %}"
+                                       {% if request.resolver_match.url_name == "workorder_mine" %}aria-current="page"{% endif %}>
+                                        <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-mis-ots"></use></svg>
+                                        Mis OTs
+                                    </a>
+                                </li>
+                            {% endif %}
+                            <li>
+                                <a class="vt-sidebar-link" href="{% url 'workorder_list' %}"
+                                   {% if request.resolver_match.url_name == "workorder_list" %}aria-current="page"{% endif %}>
+                                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-ots"></use></svg>
+                                    OTs
+                                </a>
+                            </li>
+                            <li>
+                                <a class="vt-sidebar-link" href="{% url 'maintenancerequest_list' %}"
+                                   {% if request.resolver_match.url_name == "maintenancerequest_list" %}aria-current="page"{% endif %}>
+                                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-solicitudes"></use></svg>
+                                    Solicitudes
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="vt-nav-group">
+                        <p class="vt-nav-group-label">Catálogo</p>
+                        <ul>
+                            <li>
+                                <a class="vt-sidebar-link" href="{% url 'asset_list' %}"
+                                   {% if request.resolver_match.url_name == "asset_list" %}aria-current="page"{% endif %}>
+                                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-equipos"></use></svg>
+                                    Equipos
+                                </a>
+                            </li>
+                            <li>
+                                <a class="vt-sidebar-link" href="{% url 'site_list' %}"
+                                   {% if request.resolver_match.url_name == "site_list" %}aria-current="page"{% endif %}>
+                                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-sitios"></use></svg>
+                                    Sitios
+                                </a>
+                            </li>
+                            <li>
+                                <a class="vt-sidebar-link" href="{% url 'maintenanceplan_list' %}"
+                                   {% if request.resolver_match.url_name == "maintenanceplan_list" %}aria-current="page"{% endif %}>
+                                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-planes"></use></svg>
+                                    Planes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="vt-sidebar-link" href="{% url 'checklisttemplate_list' %}"
+                                   {% if request.resolver_match.url_name == "checklisttemplate_list" %}aria-current="page"{% endif %}>
+                                    <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-checklists"></use></svg>
+                                    Checklists
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
                     {% if user.role == "admin" %}
-                        <li><a href="{% url 'user_list' %}">Usuarios</a></li>
-                        <li><a href="{% url 'auditlog_list' %}">Auditoría</a></li>
+                        <div class="vt-nav-group">
+                            <p class="vt-nav-group-label">Administración</p>
+                            <ul>
+                                <li>
+                                    <a class="vt-sidebar-link" href="{% url 'user_list' %}"
+                                       {% if request.resolver_match.url_name == "user_list" %}aria-current="page"{% endif %}>
+                                        <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-usuarios"></use></svg>
+                                        Usuarios
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="vt-sidebar-link" href="{% url 'auditlog_list' %}"
+                                       {% if request.resolver_match.url_name == "auditlog_list" %}aria-current="page"{% endif %}>
+                                        <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-auditoria"></use></svg>
+                                        Auditoría
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     {% endif %}
-                    <li><a href="{% url 'password_change' %}">Contraseña</a></li>
-                    <li>
+                </nav>
+
+                <div class="vt-sidebar-account">
+                    <input type="checkbox" id="vt-account-toggle" class="vt-sr-only vt-account-toggle" aria-label="Cuenta">
+                    <label for="vt-account-toggle" class="vt-account-trigger">
+                        <span class="vt-avatar" aria-hidden="true">{% if user.first_name %}{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}{% else %}{{ user.get_username|first|upper }}{% endif %}</span>
+                        <span class="vt-account-text">
+                            <strong>{{ user.get_short_name|default:user.get_username }}</strong>
+                            <small>{{ user.get_role_display|default:"Administrador de la plataforma" }}</small>
+                        </span>
+                        <svg class="vt-icon vt-account-chevron" aria-hidden="true"><use href="#vt-icon-chevron"></use></svg>
+                    </label>
+                    <div class="vt-account-panel">
+                        <a class="vt-account-item" href="{% url 'password_change' %}">
+                            <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-password"></use></svg>
+                            Contraseña
+                        </a>
                         <form method="post" action="{% url 'logout' %}">
                             {% csrf_token %}
-                            <button type="submit" class="vt-logout">Salir</button>
+                            <button type="submit" class="vt-account-item vt-account-item--btn">
+                                <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-salir"></use></svg>
+                                Salir
+                            </button>
                         </form>
-                    </li>
-                {% else %}
-                    <li><a href="{% url 'login' %}">Iniciar sesión</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
-    <main class="container">
-        {% if messages %}
-            {% for message in messages %}
-                <article role="alert" class="vt-alert vt-alert--{{ message.tags }}">
-                    {{ message }}
-                </article>
-            {% endfor %}
+                    </div>
+                </div>
+            </aside>
+
+            <div class="vt-maincol">
+                <header class="vt-topbar">
+                    <div class="container vt-topbar-row">
+                        <a class="vt-brand" href="{% url 'home' %}">
+                            <img src="{% static 'img/vectron-mark.svg' %}" alt="" width="28" height="28">
+                            <span class="vt-brand-name">
+                                <b>VECTRON</b>
+                                <small>Management</small>
+                            </span>
+                        </a>
+                        <input type="checkbox" id="vt-menu-toggle" class="vt-sr-only vt-menu-toggle" aria-label="Menú">
+                        <label for="vt-menu-toggle" class="vt-menu-btn">
+                            <svg class="vt-icon vt-menu-icon-open" aria-hidden="true"><use href="#vt-icon-menu"></use></svg>
+                            <svg class="vt-icon vt-menu-icon-close" aria-hidden="true"><use href="#vt-icon-close"></use></svg>
+                        </label>
+                    </div>
+                    <label for="vt-menu-toggle" class="vt-menu-scrim" aria-hidden="true"></label>
+                    {% comment %}
+                    A bare <ul>, not <nav><ul> — Pico CSS styles `nav ul` as
+                    a horizontal flex row for its own navbar pattern, which
+                    fought this dropdown's vertical stack. Same reason the
+                    original topbar (before this brief) used `<ul
+                    class="vt-nav">` directly with no wrapping <nav> either.
+                    {% endcomment %}
+                    <ul class="vt-nav">
+                            {% if user.company_id and user.role != "technician" %}
+                                <li><a href="{% url 'kpi_dashboard' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-tablero"></use></svg>Tablero</a></li>
+                            {% endif %}
+                            {% if user.role != "staff" %}
+                                <li><a href="{% url 'workorder_mine' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-mis-ots"></use></svg>Mis OTs</a></li>
+                            {% endif %}
+                            <li><a href="{% url 'workorder_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-ots"></use></svg>OTs</a></li>
+                            <li><a href="{% url 'maintenancerequest_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-solicitudes"></use></svg>Solicitudes</a></li>
+                            <li><a href="{% url 'site_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-sitios"></use></svg>Sitios</a></li>
+                            <li><a href="{% url 'asset_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-equipos"></use></svg>Equipos</a></li>
+                            <li><a href="{% url 'maintenanceplan_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-planes"></use></svg>Planes</a></li>
+                            <li><a href="{% url 'checklisttemplate_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-checklists"></use></svg>Checklists</a></li>
+                            {% if user.role == "admin" %}
+                                <li><a href="{% url 'user_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-usuarios"></use></svg>Usuarios</a></li>
+                                <li><a href="{% url 'auditlog_list' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-auditoria"></use></svg>Auditoría</a></li>
+                            {% endif %}
+                            <li><a href="{% url 'password_change' %}"><svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-password"></use></svg>Contraseña</a></li>
+                            <li>
+                                <form method="post" action="{% url 'logout' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="vt-logout">
+                                        <svg class="vt-icon" aria-hidden="true"><use href="#vt-icon-salir"></use></svg>
+                                        Salir
+                                    </button>
+                                </form>
+                            </li>
+                    </ul>
+                </header>
+
+    {% else %}
+        {% comment %}
+        The QR "plate" screen is the one page a stranger reaches with no
+        session (docs/design/DESIGN.md, "The QR scan"): it keeps a minimal
+        brand bar with a way to log in. The login page itself gets none of
+        this chrome — a form has nothing to navigate away to yet, and the
+        two-column brand panel below is the page's own header.
+        {% endcomment %}
+        {% if request.resolver_match.url_name != "login" %}
+            <header class="vt-topbar">
+                <div class="container vt-topbar-row">
+                    <a class="vt-brand" href="{% url 'login' %}">
+                        <img src="{% static 'img/vectron-mark.svg' %}" alt="" width="28" height="28">
+                        <span class="vt-brand-name">
+                            <b>VECTRON</b>
+                            <small>Management</small>
+                        </span>
+                    </a>
+                    <a href="{% url 'login' %}">Iniciar sesión</a>
+                </div>
+            </header>
         {% endif %}
-        {% block content %}{% endblock %}
-    </main>
+    {% endif %}
+
+    {% comment %}
+    One main element, one content block — Django only allows a block name
+    once per template, so this is unconditional and the two branches above
+    only vary what wraps it (opened above, closed below).
+    {% endcomment %}
+        <main class="container{% if request.resolver_match.url_name == "login" %} vt-auth-main{% endif %}">
+            {% if messages %}
+                {% for message in messages %}
+                    <article role="alert" class="vt-alert vt-alert--{{ message.tags }}">
+                        {{ message }}
+                    </article>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+
+    {% if user.is_authenticated %}
+            </div>
+        </div>
+    {% endif %}
 </body>
 </html>

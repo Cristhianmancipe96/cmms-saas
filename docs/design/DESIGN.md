@@ -328,6 +328,286 @@ screens; every interactive control 48–50px tall; contrast from 4.94:1 (the
 pre-existing checklist ordinal chip) to 17.91:1 (the login heading) in light,
 5.27:1 to 14.59:1 in dark — every measured pair clears WCAG AA.
 
+## Desktop shell and mobile navigation (brief 11d)
+
+The owner tried the deployed app on both devices. Verdict: mobile — close to right,
+two fixes. Desktop — "doesn't feel like a serious program," and it should move toward
+Tallaje (`C:\Users\andre\dev\tallaje`), his other product. This pass is interface only:
+nothing in `services.py`, `queries.py`, a model or a migration changed for it, and two
+things the brief asked for did not ship because they would have required exactly that
+(see "What did not ship" below).
+
+**Structure over skin.** Tallaje's own palette is magenta-on-near-black-by-default; its
+components are named in Spanish for a shoe warehouse. None of that transfers. What
+transfers is *shape*: a fixed sidebar that groups a long nav into named blocks, a page
+header that states what the screen is for, a full-width metric strip, dense desktop rows,
+a segmented range control. Vectron keeps its own navy/orange tokens, its own light-by-
+default/auto-dark strategy (a técnico on a plant floor under sunlight is a different scene
+than Tallaje's warehouse clerk, but the reasoning that produced "light by default" is the
+same one this file already made in "Theme strategy" — reusing the conclusion isn't
+copying, it's the same argument), and its own markup. Nothing is imported from Tallaje's
+source; each pattern below was re-derived against Vectron's existing tokens and re-checked
+for contrast here, independently.
+
+### Breakpoint
+
+One number, used everywhere in this section: **64rem (1024px)**, matching the breakpoint
+Tallaje itself ships for the same sidebar/hamburger split. Below it, phones and small
+tablets get the hamburger topbar; at or above it, the sidebar. No third, in-between layout
+— a tablet in portrait gets the mobile shell, which is already built for a touch target
+that's usually a thumb, not a mouse.
+
+### One shell, two navs, never a parallel page
+
+`base.html` now renders **both** the mobile topbar-with-hamburger and the desktop sidebar
+in every response; CSS shows exactly one of them per viewport (`.vt-sidebar` is `display:
+none` below the breakpoint, `.vt-topbar` is `display: none` at or above it). This was a
+deliberate choice over building two templates or hiding content with JavaScript:
+
+- **Mobile-first stays true.** The mobile markup the owner already approved is untouched
+  in substance — same links, same order, same role gating — only its container changed
+  from a scrolling row to a dropdown panel. Desktop is additive, not a rewrite.
+- **No duplicated permission logic.** Both navs still gate every link with the same
+  `{% if user.role == ... %}` conditions already in this file; the conditions are written
+  twice (once per nav) because the two navs group items differently (flat list vs. three
+  named sections) and a shared include would have had to branch internally on which shape
+  to render — more moving parts than two short, readable blocks of the same well-tested
+  `{% if %}`s this file already had.
+- **Every role-gated link still round-trips through Django's own auth/role check** on the
+  view it points to; the nav only decides what's *offered*, exactly as before. Nothing in
+  `apps/*/tests/` asserts a link count or an HTML structure for the nav — every existing
+  nav-related test checks a URL or a link's visible text is present/absent by role
+  (`apps/kpis/tests/test_views.py::PeriodSwitcherTests` and the two `test_the_nav_offers_it_*`
+  tests in `apps/kpis` and `apps/audit`), so rendering the same conditional link in two
+  places in one response is invisible to them — confirmed by reading every such test before
+  touching `base.html`, not assumed.
+
+### Mobile: hamburger + icons only (11d-1)
+
+The nine-to-twelve-link row that used to scroll horizontally is now a `<details>`-free,
+JavaScript-free disclosure built from the checkbox hack: a real `<input type="checkbox">`
+sized to the full 44px tap box (opacity 0, not `display:none`, so it stays keyboard-
+reachable and announces its own checked/unchecked state to a screen reader — the one
+accessibility trade-off of this pattern, accepted because the alternative was JavaScript
+on a técnico's phone with "mala señal"), a decorative hamburger/× icon beside it, and a
+full-viewport `<label>` "scrim" wired to the same checkbox so a tap anywhere outside the
+open panel closes it — the exact behaviour the brief asked for, with zero script. The
+panel's link set, order and role gating are unchanged from before this brief; only the
+container (dropdown instead of scroll-row) and the addition of one icon per item are new.
+Equipment detail, the KPI cards, and checklist execution — the three things explicitly
+called out as already working — were not touched.
+
+### Icons: one inline SVG sprite, drawn for this brief
+
+`base.html` defines a hidden `<svg><symbol>` sprite once, referenced everywhere with
+`<use>`. Reasoning:
+
+- **Sprite over per-use inline paths** (the brief allowed either): a nav icon appears
+  twice per response (mobile panel + desktop sidebar); a sprite means each shape is drawn
+  once and every occurrence stays in sync by construction, instead of two hand-kept copies
+  that can drift.
+- **Own paths, not Tallaje's `Icono.jsx`.** The brief was explicit: import the structure,
+  not the component. The set below is original geometry at the same visual language
+  (24×24 grid, 1.75 stroke, round joins/caps, `currentColor`) so it sits comfortably next
+  to Tallaje's without being a copy of it.
+- **No icon-font, no CDN library** — the "no external library without an ADR" rule in
+  `CLAUDE.md`/this brief made that an easy call: a dozen glyphs don't justify a dependency
+  a plant-floor phone would have to fetch.
+- Every icon carries `aria-hidden="true"`; the adjacent text already names the action, so
+  a screen reader would otherwise hear each link twice.
+
+### Desktop sidebar
+
+Fixed, full-height, `position: sticky`. Top to bottom: the Vectron mark + wordmark (same
+lockup as the old top bar), the tenant's company name (`user.company.name` — already in
+every authenticated request, no new query), the grouped nav, and the account block pinned
+to the bottom via flex (`nav { flex: 1 }` pushes it down, same technique Tallaje uses).
+
+**Grouping.** Eleven flat links is a list, not a structure — the brief named the fix:
+*Operación* (Tablero, Mis OTs, OTs, Solicitudes), *Catálogo* (Equipos, Sitios, Planes,
+Checklists), *Administración* (Usuarios, Auditoría), each under a small tenue label
+(uppercase, muted, the same visual weight as `.vt-kpi dt` already uses elsewhere in this
+file — reused, not reinvented). "Contraseña" moves out of the flat list entirely and into
+the account block, per the brief.
+
+**Active item.** Solid brand-orange background, near-black text — literally the existing
+`--pico-primary-background` / `--pico-primary-inverse` pair this file already validated
+for AA and already uses for every primary button. Two reasons this is the CTA pair and not
+a softer tint (which is what Tallaje itself actually ships for its own active item, despite
+the brief's prose saying "solid"): first, this file's own color strategy already lists "the
+active nav indicator" as one of the sanctioned uses of brand orange (see "Theme strategy"
+above, unchanged since brief 05) — this is that rule's desktop expression, not a new
+exception. Second, reusing an already-AA-checked pair on a single ~2.5rem-tall element
+needed no new contrast work, where a new soft-tint pair would have.
+
+**Account block.** A second, independent instance of the same checkbox-hack-plus-scrim
+disclosure the mobile menu uses (not `<details>`, so both interactive chrome elements in
+this file share one interaction pattern instead of two): avatar (CSS-only initials circle,
+computed in the template from `user.first_name`/`last_name`/`get_username` — string
+slicing, not a new field), name (`get_short_name|default:get_username`, the same fallback
+`home.html` already uses), role (`get_role_display`, likewise already in use), and inside
+the disclosure, the "Contraseña" link plus the existing "Salir" form — unchanged endpoint,
+unchanged CSRF handling, only relocated.
+
+### Page headers with a subtitle
+
+Every top-level screen reachable from the nav (Tablero, Mis OTs, OTs, Solicitudes, Sitios,
+Equipos, Planes, Checklists, Usuarios, Auditoría) now opens on a `.vt-page-head`: title,
+one line stating in plain words what the screen is for, and — new — primary actions
+aligned to the right of the title instead of dropped in a loose `<p>` below the filters.
+Screens that already had a two-line `<hgroup>` (Tablero, OTs, Solicitudes, Planes,
+Auditoría, Mis OTs) keep their existing sentence; screens that only had a bare `<h1>`
+(Equipos, Sitios, Usuarios, Checklists) gained one. Detail and form screens (equipment
+detail, work order detail, create/edit forms) were left as they are — out of the eleven
+named screens, and the equipment detail hierarchy specifically is one of the three things
+the owner already said not to touch.
+
+### Full-width metric strip
+
+`.vt-kpi-grid` / `.vt-kpi` (brief 09) already are a label/value/context triple in a
+`<dl>` — exactly the shape the brief asked for, so this reuses those classes rather than
+naming a parallel component. At ≥64rem the grid becomes one bordered flush row with a 1px
+divider between cells (a `::before` on every `.vt-kpi` but the first, not a doubled
+border) instead of individually shadowed cards; the value gains a system monospace stack
+(`ui-monospace, ...` — no webfont: this file's "no webfonts" rule for the plant-floor phone
+stays true, since the system stack costs nothing over the network). Below 64rem the
+existing two-per-row card grid from brief 09/11c is untouched.
+
+Applied beyond the dashboard **only where a real count already lives in the view's
+context** — the brief's own instruction ("si algo parece exigir lógica, repórtalo") ruled
+out computing anything new:
+
+- **OTs** (`work_order_list`): `overdue_count` (already powered its old subtitle sentence)
+  next to the paginator's total — `page_obj.paginator.count`, a property Django's own
+  `ListView` always computes, not a new query.
+- **Planes**: `overdue_count`, same reasoning, next to the paginator total.
+- **Solicitudes**: `open_count` ("sin revisar", already existed for supervisors/admins)
+  next to the paginator total; reporters without `can_review` see only the total, since
+  "sin revisar" isn't a number they act on.
+- **Equipos, Sitios, Checklists, Usuarios, Auditoría**: each has exactly one number
+  available — `page_obj.paginator.count` on the four that paginate (Equipos, Auditoría),
+  or `{{ list|length }}` on the two that don't (Sitios, Checklists, Usuarios — the same
+  technique `my_work_orders.html` already used for its own `{{ overdue|length }}` before
+  this brief, so it isn't new: the view already hands the template the full list to loop
+  over, `length` only forces the count Python already has to compute to iterate it). One
+  number doesn't make a "row with dividers" — a divider strip around a single tile reads
+  as an empty room — so on these five screens the count stays in the header subtitle
+  sentence instead (see "What did not ship").
+
+### Dense desktop rows
+
+`.vt-row` / `.vt-row-main` are unchanged in markup and completely unchanged on mobile.
+At ≥64rem, `.vt-row-main` switches from two stacked lines (`strong` over `small`) to one
+baseline-aligned line, and the leading identifier inside `strong` (an OT's `#123`, an
+asset's code, a plan's asset code) gets its own `.vt-row-id` span: muted, monospace, set
+off from the name that follows — "identificador destacado, nombre, subtexto" without
+re-templating every row from scratch, since the row partials (`_work_order_row.html`,
+`_request_row.html`, `_plan_row.html`, `asset_list.html`) already separate "the bold bit"
+from "the muted bit"; this only wraps the identifier that was already first inside the
+bold bit.
+
+### Segmented period control
+
+The KPI dashboard's period `<select name="periodo">` is now four radio inputs styled as
+connected segments, still inside the same `<form>`, still named `periodo`, still firing
+the same `hx-trigger="change, submit"` HTMX swap of `#vt-kpi-body` — radios fire `change`
+exactly like a `<select>` did, so nothing server-side or HTMX-side changed. The "Sede"
+`<select>` is untouched; the brief named only the period control.
+
+### Login, two columns on desktop
+
+A left brand panel (solid navy, the Vectron mark, one line of value proposition, three
+checked benefits) appears at ≥64rem beside the existing centered form; below the
+breakpoint the page is exactly the form it already was, centered, unchanged. The view,
+the form fields, and the CSRF/error handling are untouched — this is a template/CSS-only
+addition of a `lg:grid` wrapper around markup that already existed.
+
+### What did not ship (stopped and reported, as instructed)
+
+Two pieces of the brief needed a number this project does not compute anywhere yet, so
+they were not built rather than guessed at:
+
+1. **"Pestañas con contador" for OTs-by-state and Solicitudes.** A tab strip with a count
+   per state needs a `GROUP BY estado` the views don't run today — `status_choices` in both
+   `work_order_list` and `request_list` is a plain list of `(value, label)` pairs for a
+   `<select>`, not counts. Adding that aggregation belongs in a services/queries change,
+   which this brief explicitly forbids. The existing `<select>`-based state filter is
+   untouched.
+2. **A single-tile metric strip for Equipos.** The divider-strip component reads as a row
+   of at least two numbers; Equipos only has one already-computed count
+   (`page_obj.paginator.count`). Rather than inventing a second number (e.g. a status
+   breakdown, which is the same missing aggregation as point 1) to fill the row, the one
+   real number stays in the page header's subtitle sentence.
+
+Both are one-line additions to a future brief once a status/estado breakdown is worth
+adding to the relevant view — flagged here rather than built past the boundary this brief
+set.
+
+### Two rendering bugs the earlier briefs' components don't warn about
+
+Neither is specific to this brief's markup — both are Pico CSS styling `<nav>`'s
+descendants for its own horizontal-navbar pattern, and would bite the next `<nav>` added
+anywhere in this file:
+
+- **`nav ul` fights a vertical list.** Pico flexes any `<ul>` inside a `<nav>` as a
+  horizontal row (its own navbar component style), regardless of intervening wrapper
+  elements — a descendant selector, not a direct-child one. The mobile dropdown's `<ul>`
+  used to sit inside a wrapping `<nav aria-label="…">`; every item rendered in one wide
+  horizontal row instead of stacking, invisible in the rendered HTML (server tests
+  wouldn't catch it) and only visible by measuring live layout. Fixed by putting the
+  `.vt-nav` class directly on the `<ul>` with no `<nav>` wrapper — the same shape the
+  original topbar already used, for the same reason. The sidebar's grouped lists **do**
+  need to sit inside a real `<nav>` (for the landmark), so there `align-items: stretch`
+  is now declared explicitly rather than assumed as the flex default — Pico's rule
+  supplies `align-items: center` for that selector and a browser default is only the
+  fallback when nothing else claims the property.
+- **Pico gives every `<button>` a default bottom margin.** `.vt-logout` and
+  `.vt-account-item--btn` are buttons standing in for nav-row `<a>` tags; without an
+  explicit `margin: 0` the "Salir" row rendered 16px taller than every link row beside
+  it. Both now reset margin alongside the padding/border they already override.
+
+Both were caught the same way: measuring rendered `getBoundingClientRect()` for every
+row rather than trusting that a correct-looking CSS rule produced a correct-looking
+layout — see [[prueba-el-camino-nuevo]] and the project's own "no-op silencioso" lesson.
+
+### Verified live
+
+`javascript_tool` against the running dev server (`resize_window` plus a canvas-based
+`oklch()`/`color-mix()` resolver — this environment's browser pane does not composite
+frames for screenshots), at 375px, 390px and 1440px desktop, light and dark, across
+Tablero, OTs, Mis OTs, Solicitudes, Equipos, Sitios, Planes, Checklists, Usuarios,
+Auditoría and Login:
+
+- **No page-level horizontal overflow** on any of the eleven screens at any width. The
+  KPI dashboard's cost table still overflows *inside* its own `.vt-table-wrap` at 390px,
+  by design (brief 09) — the page body itself never scrolls sideways.
+- **Every measured text/background pair clears WCAG AA**, most by a wide margin: sidebar
+  links 17.2:1 light / 12.4:1 dark (default) and 7.0:1 (the solid-orange active state,
+  same in both themes — it's the existing primary-button pair); group labels, tenant
+  line and account role 5.7:1 light / 6.7:1 dark; the account avatar's initials 5.0:1
+  light / 5.7:1 dark; KPI values 17.2:1 light / 12.4:1 dark, KPI labels 5.7:1 / 6.7:1;
+  page-header subtitles 5.3:1 light / 7.9:1 dark; the segmented period control 6.7–7.0:1
+  in both themes; the login brand panel 12.4–21:1. The one non-obvious measurement was
+  `.vt-row-id`: its rule sets `color: var(--vt-muted)`, but the more specific
+  `a.vt-row .vt-row-id { color: inherit; opacity: 0.7 }` wins inside a row link, and
+  `getComputedStyle().color` reports the pre-opacity value — checked by blending the
+  computed color toward the row's own background at the element's *effective* opacity
+  (multiplied through its ancestors) rather than reading `color` alone; the real
+  on-screen result is 6.2:1.
+- **Every mobile menu row is a true 48px tap target** (12 rows, both nav links and
+  "Salir"), the panel opens on either the hamburger icon or a tap anywhere else on the
+  page (the scrim), and closes the same two ways — confirmed by dispatching the actual
+  DOM events a tap produces (`checkbox.click()` / a `change` event on the checkbox),
+  not by asserting the CSS rule exists.
+- The login page's full-bleed breakout was **first built with the classic
+  `left: 50%; margin-left: -50vw` trick** (position:relative on `.vt-auth`) and it
+  measured a genuine ~150px horizontal overflow on this Windows machine — that
+  construction's math implicitly assumes the vertical scrollbar's width is zero, which
+  it was not here. Rebuilt by having `<main>` drop Pico's `max-width`/padding outright
+  for this one page (a `vt-auth-main` modifier class, set only when
+  `request.resolver_match.url_name == "login"`) instead of fighting the constraint with
+  viewport-relative math; re-measured at exactly 0px overflow.
+
 ## Assets
 
 `static/img/vectron-mark.svg` is a **provisional** two-tone V drawn from the logo

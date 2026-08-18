@@ -9,16 +9,18 @@ requires reading dates to answer it is making the reader do the work.
 {% block title %}Mis OTs{% endblock %}
 
 {% block content %}
-    <hgroup>
-        <h1>Mis OTs</h1>
-        <p>
-            {% if total %}
-                {{ total }} orden{{ total|pluralize:"es" }} abierta{{ total|pluralize }} a tu nombre.
-            {% else %}
-                Nada pendiente a tu nombre.
-            {% endif %}
-        </p>
-    </hgroup>
+    <div class="vt-page-head">
+        <div class="vt-page-head-text">
+            <h1>Mis OTs</h1>
+            <p>
+                {% if total %}
+                    {{ total }} orden{{ total|pluralize:"es" }} abierta{{ total|pluralize }} a tu nombre, lo vencido primero.
+                {% else %}
+                    Nada pendiente a tu nombre.
+                {% endif %}
+            </p>
+        </div>
+    </div>
 
     {% if overdue %}
         <section>
