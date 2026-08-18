@@ -901,7 +901,10 @@ a.vt-row:is(:hover, :focus-visible) {
 
 /* Filter bars wrap instead of squeezing five controls onto one phone line. */
 .vt-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.vt-filters :is(select, button) { margin: 0; width: auto; flex: 1 1 10rem; }
+/* input[type="search"] named explicitly, not a bare `input`: a checkbox
+   filter (.vt-check-inline) can nest an <input> inside this same bar, and it
+   must not inherit a 10rem flex-basis meant for a text field (brief 11c). */
+.vt-filters :is(input[type="search"], select, button) { margin: 0; width: auto; flex: 1 1 10rem; }
 /* The label is the tap target, not the 20px box inside it. */
 .vt-check-inline { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; margin: 0; min-height: var(--vt-tap); }
 .vt-check-inline input { margin: 0; }
@@ -1149,14 +1152,18 @@ blockquote.vt-report-text { font-size: 0.9375rem; color: var(--vt-muted); }
   /* auto-fit, no breakpoints: two tiles per row on a 390px phone, six across
      on a desktop, nothing to maintain in between. */
   grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-  gap: 0.75rem;
+  gap: 0.875rem;
   margin: 0 0 2rem;
 }
+/* Brief 11c: a shadow and a touch more padding is what turns a bordered box
+   into a raised panel — the same elevation language `.vt-meter` and
+   `.vt-exec-head` already use elsewhere in the product, not a new one. */
 .vt-kpi {
-  padding: 0.75rem 0.875rem;
+  padding: 0.875rem 1rem 1rem;
   border: 1px solid var(--pico-muted-border-color);
   border-radius: var(--vt-radius);
   background: var(--pico-card-background-color);
+  box-shadow: var(--pico-card-box-shadow);
 }
 .vt-kpi dt {
   font-size: 0.6875rem;
@@ -1165,11 +1172,14 @@ blockquote.vt-report-text { font-size: 0.9375rem; color: var(--vt-muted); }
   text-transform: uppercase;
   color: var(--vt-muted);
 }
-.vt-kpi dd { margin: 0.25rem 0 0; }
+.vt-kpi dd { margin: 0.3rem 0 0; }
 /* Proportional figures, deliberately: `tabular-nums` gives every digit the
    width of a zero, which makes a display-size number look loose. Tabular is
-   for the columns below (.vt-num-cell), where digits must line up. */
-.vt-kpi-value { display: block; font-size: 1.75rem; font-weight: 600; line-height: 1.1; color: var(--vt-ink); }
+   for the columns below (.vt-num-cell), where digits must line up. Bolder
+   weight and a touch of negative tracking (brief 11c) is the number pulling
+   rank over its own label — the label was already quiet; the number needed
+   to be louder, not the label quieter. */
+.vt-kpi-value { display: block; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; color: var(--vt-ink); }
 .vt-kpi-value small { margin-left: 0.1rem; font-size: 0.9375rem; font-weight: 500; color: var(--vt-muted); }
 /* An indicator without a denominator reads as absent, not as zero. */
 .vt-kpi-value--none { color: var(--vt-muted); }
@@ -1213,13 +1223,14 @@ p { text-wrap: pretty; }
 main.container { max-width: 72ch; padding-block: 1.25rem; }
 main.container--wide { max-width: 1100px; }
 
-/* Buttons: subtle press feedback */
+/* Buttons: press feedback. A scale reads as "the interface heard the tap";
+   a 1px nudge reads as nothing on a phone (brief 11c). */
 button, [role="button"], input[type="submit"] {
   transition: background var(--vt-t-fast) var(--vt-ease-out),
               border-color var(--vt-t-fast) var(--vt-ease-out),
               transform 80ms var(--vt-ease-out);
 }
-button:active, [role="button"]:active, input[type="submit"]:active { transform: translateY(1px); }
+button:active, [role="button"]:active, input[type="submit"]:active { transform: scale(0.97); }
 
 /* Keyboard focus: visible, brand-colored, offset */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
@@ -1234,3 +1245,81 @@ button:active, [role="button"]:active, input[type="submit"]:active { transform: 
     animation-iteration-count: 1 !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   10. Visual hierarchy pass (brief 11c) — no behaviour changes anywhere in
+   this section. The KPI tiles and the global button press feedback moved in
+   place, above; everything below is new.
+   -------------------------------------------------------------------------- */
+
+/* 10a. The equipment record's destructive actions (Dar de baja, Eliminar).
+   Six actions the same shade of navy read as one undifferentiated row —
+   DESIGN.md's .vt-actions already solves wrapping, this adds a second,
+   separated group instead of colouring every read the same as a delete.
+   Quiet at rest (danger-coloured text is enough to find them on purpose,
+   same device as .vt-req/.vt-check-verdict elsewhere in the product) and
+   only fills in on interaction, so the row a company looks at 95% of the
+   time — Editar, Hoja de vida, Enviar, Etiqueta QR — is not sitting next to
+   red. Both actions still go through their own confirm screen; this is
+   presentation only. */
+.vt-actions-danger {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+.vt-btn-danger {
+  background: transparent;
+  color: var(--vt-danger-700);
+  border-color: var(--vt-slate-300);
+}
+.vt-btn-danger:is(:hover, :focus-visible) {
+  background: var(--vt-danger-100);
+  border-color: color-mix(in srgb, var(--vt-danger-700) 35%, transparent);
+  color: var(--vt-danger-700);
+}
+/* Written twice, like .vt-req/.vt-progress-fill above: a technician's phone
+   is usually on "automatic" (prefers-color-scheme), never on a toggle this
+   app has not built — most of this file's [data-theme="dark"] rules have no
+   prefers-color-scheme counterpart and so never fire under system dark mode
+   at all (measured: .vt-btn-danger at 2.66:1 with only the rule below).
+   Flagged for the owner as a separate, pre-existing, cross-cutting gap
+   outside this brief's five named surfaces — not fixed everywhere here. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .vt-btn-danger { color: var(--vt-danger-300); border-color: var(--vt-navy-600); }
+  :root:not([data-theme="light"]) .vt-btn-danger:is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--vt-danger-700) 24%, var(--vt-navy-900));
+    border-color: color-mix(in srgb, var(--vt-danger-300) 35%, transparent);
+    color: var(--vt-danger-300);
+  }
+}
+[data-theme="dark"] .vt-btn-danger { color: var(--vt-danger-300); border-color: var(--vt-navy-600); }
+[data-theme="dark"] .vt-btn-danger:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--vt-danger-700) 24%, var(--vt-navy-900));
+  border-color: color-mix(in srgb, var(--vt-danger-300) 35%, transparent);
+  color: var(--vt-danger-300);
+}
+
+/* 10b. Auth screens. A login form is the one thing on the page, so
+   containing it in a panel is the content, not the lazy-card pattern
+   DESIGN.md avoids for entity lists — nothing here is a card standing in
+   for a missing layout decision. */
+.vt-auth { display: flex; justify-content: center; padding-block: 1.5rem; }
+.vt-auth-panel {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.75rem 1.5rem;
+  border: 1px solid var(--pico-card-border-color);
+  border-radius: var(--vt-radius);
+  background: var(--pico-card-background-color);
+  box-shadow: var(--pico-card-box-shadow);
+}
+.vt-auth-panel h1 { margin: 0 0 1.25rem; font-size: 1.375rem; text-align: center; }
+.vt-auth-panel button[type="submit"] { width: 100%; min-height: var(--vt-tap-lg); margin-top: 0.25rem; }
+
+/* 10c. The two free-text fields on the execution screen (a checklist item's
+   "text" answer, and the observación note under every item) were never
+   given the 1rem floor `.vt-report textarea` already uses: below 16px, iOS
+   zooms the whole page on focus, and a viewport that jumps while someone is
+   typing with gloves on is how an answer gets abandoned half-written. */
+.vt-check-item textarea,
+.vt-check-note textarea { font-size: 1rem; }

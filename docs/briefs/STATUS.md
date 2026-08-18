@@ -17,9 +17,18 @@ Execute in order — each brief depends on all previous ones unless noted.
 - [x] 11 — Deploy readiness: production profile, Docker + gunicorn, backups, gitleaks in CI
 - [ ] 11b — Remaining hardening: login lockout, rate limiting, password policy, pip-audit,
       Ley 1581 retention/deletion
+- [x] 11c — Visual hierarchy pass: equipment detail, KPI dashboard, mobile execution,
+      lists and login; plus the leaked-template-comment bug and its regression test
 
 Brief 11 was split by the owner on 2026-08-16: selling comes before completing the phases,
 and a QR only sells when a prospect scans it with their own phone — which needs a public
 HTTPS URL. The delivered half is everything required to be exposed to the internet with
 fictional data. The pending half (11b) is specified in `11-security-hardening.md` items
 1, 4, 5, 6 and part of 7, and is required **before any real customer data is loaded**.
+
+Brief 11c arrived by chat, not as a `docs/briefs/11c-*.md` file (the chat brief governs
+per `CLAUDE.md`). It shipped in two commits: 11c-1 (multi-line `{# #}` comments rendering
+as literal text and, on narrow viewports, overlapping buttons) was escalated mid-session
+to a functional blocker on the deployed instance, so that fix landed alone first
+(`da9bd8a`) for an immediate redeploy; the 11c-2 visual redesign — equipment detail,
+KPI dashboard, mobile execution, lists, login — followed in its own commit.

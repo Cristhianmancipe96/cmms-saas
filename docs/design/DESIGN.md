@@ -270,6 +270,64 @@ Verified live at 375px and on desktop, both themes: no page-level horizontal
 overflow, controls at 50px, contrast on the tiles 5.7:1 (labels) to 17.2:1 (values)
 in light and 6.6:1 to 12.4:1 in dark.
 
+## Visual hierarchy pass (brief 11c)
+
+The owner's read after briefs 00–11: the product works, but nothing on five key
+screens told the eye where to look first. This pass adds hierarchy and elevation
+within the existing tokens — no new colors, no new brand elements, nothing in a
+`services.py` or `queries.py` changed anywhere.
+
+- **Equipment detail (`.vt-actions-danger`, `.vt-btn-danger`)** — six actions the
+  same shade of navy read as one row. Editar stays Pico's default (the one primary
+  action); Hoja de vida / Enviar / Etiqueta QR stay equal-weight secondary reads.
+  Dar de baja and Eliminar move to a second row below a border, outlined in danger
+  red rather than filled — quiet until interaction, so the row a company looks at
+  95% of the time is not sitting next to red. Both still route through their own
+  confirm screen; nothing about the confirmation changed.
+- **KPI tiles** — `.vt-kpi` gained the same `box-shadow` `.vt-meter`/`.vt-exec-head`
+  already use, a touch more padding and grid gap, and `.vt-kpi-value` moved from
+  600 to 700 weight with -0.01em tracking: the number pulling rank over its own
+  label, not the label going quieter. The six-tile grid, the one-semantic-colour
+  rule and the no-charts decision (brief 09) are unchanged.
+- **Mobile execution** — already close to the bar brief 05 set; the one real gap
+  was the free-text checklist answer and the observación note, the only two
+  `<textarea>`s on the screen without the 1rem floor `.vt-report` already uses:
+  below 16px, iOS zooms the whole page on focus mid-answer. Fixed for both.
+- **Lists** — `asset_list.html`'s filter form moved from Pico's `.grid` (equal
+  columns that shrink together, never wrap) to `.vt-filters` (the component
+  `work_order_list`/`maintenancerequest_list` already use, built to wrap at
+  390px), with a label on every control. `site_list.html` was the one entity list
+  in the product still a bare `<ul>`/`<li><a>`; it now uses `.vt-list`/`.vt-row`
+  with the address as a subline, like every other list. The equipment detail's
+  "Documentos" empty state was a bare `<li>`; it now reads like its neighbours in
+  the same file (`.vt-empty`).
+- **Login (`.vt-auth`, `.vt-auth-panel`)** — a centred, bordered, elevated panel.
+  Not the lazy-card pattern this file otherwise avoids for entity lists: a login
+  form is the one thing on the page, so containing it is the content. The error
+  message moved from a bare Pico `article.error` to `.vt-alert--error`, matching
+  every other message in the product.
+- **Global** — button `:active` feedback moved from a 1px nudge to `transform:
+  scale(0.97)`: legible as "the interface heard the tap" on a touchscreen, where a
+  1px shift reads as nothing. Applies everywhere, including `.vt-seg`'s
+  OK/Falla/N-A buttons on the execution screen.
+
+**A pre-existing gap this pass surfaced but did not fix**: most of this file's
+`[data-theme="dark"]` component rules (badges, alerts, row tints, the segmented
+control's pressed states, field errors) have no `@media (prefers-color-scheme:
+dark)` counterpart, and nothing in the app ever sets `data-theme` — so those rules
+never fire under real system dark mode, only under a manual toggle this app has
+never built. `.vt-req`/`.vt-progress-fill` and the KPI alert/bar colours already
+write the rule twice for exactly this reason (brief 05, brief 09); the new
+`.vt-btn-danger` above does too. The rest does not — flagged separately for the
+owner rather than rewritten wholesale inside a visual-hierarchy brief.
+
+Verified live at 375px and desktop, both themes (`resize_window` plus a
+1×1-canvas oklch resolver, since this environment's browser pane does not
+composite frames for screenshots): no horizontal overflow on any of the five
+screens; every interactive control 48–50px tall; contrast from 4.94:1 (the
+pre-existing checklist ordinal chip) to 17.91:1 (the login heading) in light,
+5.27:1 to 14.59:1 in dark — every measured pair clears WCAG AA.
+
 ## Assets
 
 `static/img/vectron-mark.svg` is a **provisional** two-tone V drawn from the logo

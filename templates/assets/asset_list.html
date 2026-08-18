@@ -5,10 +5,13 @@
 {% block content %}
     <h1>Equipos</h1>
 
-    <form method="get" class="grid">
-        <input type="search" name="q" placeholder="Buscar por nombre, código o serie"
+    <form method="get" class="vt-filters" role="search">
+        <label class="vt-sr-only" for="filtro-buscar">Buscar</label>
+        <input type="search" name="q" id="filtro-buscar" placeholder="Buscar por nombre, código o serie"
                value="{{ filters.q|default:'' }}">
-        <select name="site">
+
+        <label class="vt-sr-only" for="filtro-sitio">Sitio</label>
+        <select name="site" id="filtro-sitio">
             <option value="">Todos los sitios</option>
             {% for site in sites %}
                 <option value="{{ site.pk }}" {% if filters.site == site.pk|stringformat:"s" %}selected{% endif %}>
@@ -16,7 +19,9 @@
                 </option>
             {% endfor %}
         </select>
-        <select name="category">
+
+        <label class="vt-sr-only" for="filtro-categoria">Categoría</label>
+        <select name="category" id="filtro-categoria">
             <option value="">Todas las categorías</option>
             {% for category in categories %}
                 <option value="{{ category.pk }}" {% if filters.category == category.pk|stringformat:"s" %}selected{% endif %}>
@@ -24,18 +29,23 @@
                 </option>
             {% endfor %}
         </select>
-        <select name="status">
+
+        <label class="vt-sr-only" for="filtro-estado">Estado</label>
+        <select name="status" id="filtro-estado">
             <option value="">Todos los estados</option>
             {% for value, label in status_choices %}
                 <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
-        <select name="criticality">
+
+        <label class="vt-sr-only" for="filtro-criticidad">Criticidad</label>
+        <select name="criticality" id="filtro-criticidad">
             <option value="">Toda criticidad</option>
             {% for value, label in criticality_choices %}
                 <option value="{{ value }}" {% if filters.criticality == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
+
         <button type="submit">Filtrar</button>
     </form>
 

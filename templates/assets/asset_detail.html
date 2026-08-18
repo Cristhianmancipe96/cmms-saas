@@ -14,6 +14,13 @@
     overflow a 390px viewport without it. The row always renders now: the
     hoja de vida is a read, so every role in the company gets it; everything
     else stays with the people who own the equipment list.
+
+    Hierarchy (brief 11c): Editar is the one primary action (Pico's default
+    orange background) — the most common next step for the roles that can
+    act here at all. Hoja de vida / Enviar / Etiqueta QR are equal-weight
+    secondary reads. Dar de baja and Eliminar are consequences, not chores:
+    they get their own row below, separated and outlined rather than filled
+    — see .vt-actions-danger.
     {% endcomment %}
     <div class="vt-actions">
         {% if user.role == "admin" or user.role == "supervisor" %}
@@ -23,12 +30,16 @@
         {% if user.role == "admin" or user.role == "supervisor" %}
             <a href="{% url 'asset_record_send' asset.pk %}" role="button" class="secondary outline">Enviar por correo</a>
             <a href="{% url 'asset_label' asset.pk %}" role="button" class="secondary">Etiqueta QR</a>
-            {% if asset.status != "dado_de_baja" %}
-                <a href="{% url 'asset_baja' asset.pk %}" role="button" class="secondary">Dar de baja</a>
-            {% endif %}
-            <a href="{% url 'asset_delete' asset.pk %}" role="button" class="secondary">Eliminar</a>
         {% endif %}
     </div>
+    {% if user.role == "admin" or user.role == "supervisor" %}
+        <div class="vt-actions vt-actions-danger">
+            {% if asset.status != "dado_de_baja" %}
+                <a href="{% url 'asset_baja' asset.pk %}" role="button" class="vt-btn-danger">Dar de baja</a>
+            {% endif %}
+            <a href="{% url 'asset_delete' asset.pk %}" role="button" class="vt-btn-danger">Eliminar</a>
+        </div>
+    {% endif %}
 
     {% if asset.status == "dado_de_baja" and asset.baja_reason %}
         <article role="alert" class="vt-alert vt-alert--warning">
@@ -86,7 +97,12 @@
                     </a>
                 </li>
             {% empty %}
-                <li>No hay documentos adjuntos.</li>
+                <li>
+                    <div class="vt-empty">
+                        <p>No hay documentos adjuntos.</p>
+                        <small>Manuales, fichas técnicas o certificados del equipo, si los tienes.</small>
+                    </div>
+                </li>
             {% endfor %}
         </ul>
 
