@@ -9,10 +9,12 @@
         <span class="vt-badge vt-badge--{{ asset.status }}">{{ asset.get_status_display }}</span>
     </h1>
 
-    {# .vt-actions, not a bare <p>: DESIGN.md — Pico's inline-block buttons
-       overflow a 390px viewport without it. The row always renders now: the
-       hoja de vida is a read, so every role in the company gets it; everything
-       else stays with the people who own the equipment list. #}
+    {% comment %}
+    .vt-actions, not a bare <p>: DESIGN.md — Pico's inline-block buttons
+    overflow a 390px viewport without it. The row always renders now: the
+    hoja de vida is a read, so every role in the company gets it; everything
+    else stays with the people who own the equipment list.
+    {% endcomment %}
     <div class="vt-actions">
         {% if user.role == "admin" or user.role == "supervisor" %}
             <a href="{% url 'asset_update' asset.pk %}" role="button">Editar</a>

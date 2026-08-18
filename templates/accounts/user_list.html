@@ -27,9 +27,11 @@
                     </td>
                 </tr>
             {% empty %}
-                {# Unreachable in practice — whoever is reading this screen is
-                   in the list — but a table with no <tbody> rows renders as a
-                   floating header, which reads as a broken page. #}
+                {% comment %}
+                Unreachable in practice — whoever is reading this screen is
+                in the list — but a table with no <tbody> rows renders as a
+                floating header, which reads as a broken page.
+                {% endcomment %}
                 <tr><td colspan="4">Todavía no hay nadie más en la empresa.</td></tr>
             {% endfor %}
         </tbody>
